@@ -501,7 +501,7 @@ export async function mockPolish(
   };
 }
 
-async function mockProcessGoal(goalId: string): Promise<GoalCourseResponse> {
+export async function mockProcessGoal(goalId: string): Promise<GoalCourseResponse> {
   await new Promise((r) => setTimeout(r, 2000));
 
   return {

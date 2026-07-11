@@ -9,6 +9,7 @@ import Layout from "./components/Layout";
 import AuthPage from "./pages/AuthPage";
 import JournalPage from "./pages/JournalPage";
 import GoalsPage from "./pages/GoalsPage";
+import GoalDetailPage from "./pages/GoalDetailPage";
 import LibraryPage from "./pages/LibraryPage";
 import PublicationsPage from "./pages/PublicationsPage";
 import ArticleView from "./pages/ArticleView";
@@ -86,6 +87,7 @@ export default function App() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/journal" element={<JournalPage />} />
         <Route path="/goals" element={<ProtectedRoute><GoalsPage /></ProtectedRoute>} />
+        <Route path="/goals/:id" element={<ProtectedRoute><GoalDetailPage /></ProtectedRoute>} />
         <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
         <Route path="/publications" element={<PublicationsPage />} />
         <Route path="/publications/:id" element={<ArticleView />} />

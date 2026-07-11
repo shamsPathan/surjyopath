@@ -2,8 +2,10 @@ import {
   CheckCircle2, Circle, Trash2, Target, Calendar,
   TrendingUp, Sparkles, Mountain, Sunset, BookOpen,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { Goal, CompassDirection } from "../types/goal";
 import { useGoalStore } from "../store/useGoalStore";
+import GoalCourseSection from "./GoalCourseSection";
 
 /* ── compass direction icon / label mapping ── */
 const COMPASS_META: Record<CompassDirection, { icon: typeof TrendingUp; label: string; colorClass: string }> = {
@@ -38,43 +40,57 @@ function timeAgo(iso: string): string {
 }
 
 export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps) {
+  const navigate = useNavigate();
   const isComplete = goal.progress === 100;
+
+  const handleViewDetail = () => {
+    navigate(`/goals/${goal.id}`);
+  };
 
   return (
     <div className="rounded-xl bg-surface border border-border p-5 shadow-sm transition-all duration-150 hover:border-primary/20">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div className="flex items-start gap-3 min-w-0">
-          <div
-            className={`mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-300 ${
-              isComplete
-                ? "bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20"
-                : "bg-gradient-to-br from-primary to-accent/60 shadow-primary/10"
-            }`}
-          >
-            <Target size={18} className="text-white" />
-          </div>
-          <div className="min-w-0">
-            <h3 className="text-base font-heading font-semibold text-foreground truncate">
-              {goal.title}
-            </h3>
-            {goal.description && (
-              <p className="text-sm text-muted mt-0.5 line-clamp-2 leading-relaxed">
-                {goal.description}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Delete button */}
-        <button
-          onClick={() => onDelete(goal.id)}
-          className="shrink-0 p-1.5 rounded-lg text-muted hover:text-destructive hover:bg-surface-active transition-all duration-150 active:scale-90"
-          aria-label="Delete goal"
+      {/* Header row — clickable to view details */}
+        <div
+          className="flex items-start justify-between gap-3 mb-4 cursor-pointer"
+          onClick={handleViewDetail}
+          role="link"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleViewDetail(); }}
         >
-          <Trash2 size={15} />
-        </button>
-      </div>
+          <div className="flex items-start gap-3 min-w-0">
+            <div
+              className={`mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-300 ${
+                isComplete
+                  ? "bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20"
+                  : "bg-gradient-to-br from-primary to-accent/60 shadow-primary/10"
+              }`}
+            >
+              <Target size={18} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-base font-heading font-semibold text-foreground truncate">
+                {goal.title}
+              </h3>
+              {goal.description && (
+                <p className="text-sm text-muted mt-0.5 line-clamp-2 leading-relaxed">
+                  {goal.description}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Delete button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(goal.id);
+            }}
+            className="shrink-0 p-1.5 rounded-lg text-muted hover:text-destructive hover:bg-surface-active transition-all duration-150 active:scale-90"
+            aria-label="Delete goal"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
 
       {/* Compass direction badge */}
       {goal.direction && COMPASS_META[goal.direction] && (
@@ -193,6 +209,18 @@ export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps
           <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
           <span className="text-xs font-medium text-primary/70">Knock AI is building your learning path…</span>
         </div>
+      ) : goal.aiCourseStatus === "failed" ? (
+        <div className="mt-4 p-3 rounded-lg bg-rose-500/5 border border-rose-500/10">
+          <p className="text-xs text-rose-400/80 mb-2">
+            AI generation didn't complete. Try again or use the manual path below.
+          </p>
+          <button
+            onClick={() => useGoalStore.getState().generateCourse(goal.id)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all duration-150 active:scale-95 cursor-pointer"
+          >
+            Retry AI generation
+          </button>
+        </div>
       ) : !goal.course || goal.course.length === 0 ? (
         <button
           onClick={() => useGoalStore.getState().generateCourse(goal.id)}
@@ -201,6 +229,12 @@ export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps
           <BookOpen size={14} />
           Generate AI learning path
         </button>
+      ) : goal.course && goal.aiCourseStatus === "ready" ? (
+        <GoalCourseSection
+          course={goal.course}
+          goalId={goal.id}
+          onViewDetail={handleViewDetail}
+        />
       ) : null}
     </div>
   );

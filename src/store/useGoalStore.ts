@@ -281,8 +281,10 @@ export const useGoalStore = create<GoalState>((set, get) => ({
     set({ goals });
     persistIfGuest(goals);
 
-    /* Fire-and-forget AI enrichment */
-    enrichGoalWithAICourse(goal.id, goal.title, goal.description);
+    /* Fire-and-forget AI enrichment (skip for guest users) */
+    if (useAuthStore.getState().isAuthenticated) {
+      enrichGoalWithAICourse(goal.id, goal.title, goal.description);
+    }
   },
 
   updateGoal: (id, partial) => {

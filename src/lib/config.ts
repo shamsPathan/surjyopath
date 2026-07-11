@@ -14,7 +14,7 @@ export const CONFIG = {
   },
   knock: {
     rateLimitDelay: 5000, // 5 seconds between manual knocks
-    goalBatchInterval: 12 * 60 * 60 * 1000, // 12 hours for goal batch processing (in ms)
+    goalBatchInterval: 5 * 60 * 1000, // 5 minutes for goal batch processing (in ms)
     maxThoughtKnocksPerDay: 20,
   },
 } as const;

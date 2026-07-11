@@ -1,17 +1,15 @@
 /**
  * AI Service Layer — Knock Engine
  *
- * Unified client that attempts to analyse thoughts and process goals
- * through a chain of providers:
- *   1. Supabase Edge Function (knock-ai)
- *   2. Go Backend (legacy)
- *   3. Mock AI (browser-based fallback)
+ * Unified client that analyses thoughts and processes goals
+ * through a provider chain:
+ *   1. Supabase Edge Function (knock-ai) — live, backed by Fireworks AI
+ *   2. Mock AI (browser-based fallback)
  *
  * Also handles rate limiting and result caching.
  */
 
 import { supabase } from "../lib/supabase";
-import { CONFIG } from "../lib/config";
 import { canKnock, recordKnock } from "../lib/rateLimiter";
 import { runMockAI as mockThoughtAnalysis } from "../lib/mockAI";
 import type { Thought, ThoughtAnalysis } from "../types/thought";
@@ -24,7 +22,7 @@ export interface AiServiceResult<T> {
   data?: T;
   error?: string;
   fromCache?: boolean;
-  source: "edge-function" | "go-backend" | "mock";
+  source: "edge-function" | "mock";
 }
 
 export interface ProcessingState {
@@ -69,7 +67,7 @@ export function getProcessingState(): ProcessingState {
 
 /**
  * Analyse a thought using the Knock AI engine.
- * Tries: Edge Function → Go Backend → Mock
+ * Tries: Edge Function → Mock
  */
 export async function knockThought(
   thought: Thought,
@@ -97,19 +95,9 @@ export async function knockThought(
       return { success: true, data: edgeResult.data, source: "edge-function" };
     }
 
-    setProcessing({ progress: 50, message: "Edge function unavailable, trying backend…" });
+    setProcessing({ progress: 50, message: "Running local analysis…" });
 
-    // 2. Try Go Backend
-    const goResult = await tryGoBackend<ThoughtAnalysis>("thought", thought.id);
-    if (goResult.success && goResult.data) {
-      recordKnock("thought");
-      setProcessing({ isProcessing: false, currentType: null, progress: 100, message: "Analysis complete!" });
-      return { success: true, data: goResult.data, source: "go-backend" };
-    }
-
-    setProcessing({ progress: 75, message: "Running local analysis…" });
-
-    // 3. Fall back to browser-based mock
+    // 2. Fall back to browser-based mock
     const mockResult = await mockThoughtAnalysis(thought);
     recordKnock("thought");
     setProcessing({ isProcessing: false, currentType: null, progress: 100, message: "Analysis complete!" });
@@ -131,7 +119,7 @@ export async function knockThought(
 
 /**
  * Process a goal into a structured course using Knock AI.
- * Tries: Edge Function → Go Backend → Mock
+ * Tries: Edge Function → Mock
  */
 export async function processGoal(
   goalId: string,
@@ -164,19 +152,9 @@ export async function processGoal(
       return { success: true, data: course, source: "edge-function" };
     }
 
-    setProcessing({ progress: 40, message: "Backend unavailable, trying local generation…" });
+    setProcessing({ progress: 40, message: "Running local course generation…" });
 
-    // 2. Try Go Backend
-    const goResult = await tryGoBackend<GoalCourseResponse>("goal", goalId);
-    if (goResult.success && goResult.data) {
-      recordKnock("goal");
-      setProcessing({ isProcessing: false, currentType: null, progress: 100, message: "Course ready!" });
-      return { success: true, data: goResult.data, source: "go-backend" };
-    }
-
-    setProcessing({ progress: 70, message: "Running local course generation…" });
-
-    // 3. Fall back to mock
+    // 2. Fall back to mock
     const { mockProcessGoal } = await import("../api/client"); // dynamic import avoids circular
     const course = await mockProcessGoal(goalId);
     recordKnock("goal");
@@ -257,13 +235,19 @@ async function tryEdgeFunction<T>(
   params: { content: string; title?: string },
 ): Promise<AiServiceResult<T>> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
     const { data, error } = await supabase.functions.invoke("knock-ai", {
       body: {
         type,
         content: params.content,
         title: params.title,
       },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (error) throw new Error(error.message);
 
@@ -281,37 +265,5 @@ async function tryEdgeFunction<T>(
   } catch (err) {
     console.warn("Edge function call failed:", err);
     return { success: false, error: "Edge function unavailable", source: "edge-function" };
-  }
-}
-
-async function tryGoBackend<T>(
-  type: "thought" | "goal",
-  id: string,
-): Promise<AiServiceResult<T>> {
-  try {
-    const token = (await supabase.auth.getSession()).data.session?.access_token;
-
-    const endpoint = type === "thought"
-      ? `${CONFIG.goBackend.url}/api/ai/knock/thought`
-      : `${CONFIG.goBackend.url}/api/ai/process/goal`;
-
-    const body = type === "thought" ? { thoughtId: id } : { goalId: id };
-
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) throw new Error(`Backend error ${res.status}`);
-
-    const result = await res.json();
-    return { success: true, data: result as T, source: "go-backend" };
-  } catch (err) {
-    console.warn("Go backend call failed:", err);
-    return { success: false, error: "Go backend unavailable", source: "go-backend" };
   }
 }
