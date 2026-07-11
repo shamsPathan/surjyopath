@@ -9,15 +9,18 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    setSignupSuccess(false);
     try {
       if (mode === "signin") {
         await signIn(email, password);
       } else {
         await signUp(email, password, nickname || "Explorer");
+        setSignupSuccess(true);
         setMode("signin");
       }
     } catch {
@@ -119,6 +122,18 @@ export default function AuthPage() {
                 />
               </div>
             </div>
+
+            {signupSuccess && (
+              <div className="flex items-start gap-2 p-3 bg-accent/10 border border-accent/20 rounded-lg">
+                <Mail className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-accent">Check your inbox!</p>
+                  <p className="text-xs text-accent/70 mt-0.5">
+                    We sent a confirmation link to <strong>{email}</strong>. Click it to activate your account.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {error && (
               <div className="flex items-start gap-2 p-3 bg-error/10 border border-error/20 rounded-lg">

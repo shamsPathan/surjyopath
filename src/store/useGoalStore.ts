@@ -1,7 +1,8 @@
 import { create } from "zustand";
-import type { Goal } from "../types/goal";
+import type { Goal, GoalCourseModule } from "../types/goal";
 import { useAuthStore } from "./useAuthStore";
 import * as guestStorage from "../lib/guestStorage";
+import { processGoal } from "../services/aiService";
 
 interface GoalState {
   goals: Goal[];
@@ -20,6 +21,9 @@ interface GoalState {
 
   /* UI */
   setCreating: (v: boolean) => void;
+
+  /* AI course enrichment */
+  generateCourse: (goalId: string) => void;
 }
 
 let _counter = 20000;
@@ -192,7 +196,56 @@ function generateLearningPath(title: string, description: string, direction?: st
     title: s.title,
     description: s.description,
     completed: false,
+    order: i,
   }));
+}
+
+/**
+ * Fire-and-forget AI enrichment: generates a full course with modules
+ * for the given goal and updates the store when complete.
+ */
+async function enrichGoalWithAICourse(goalId: string, title: string, description: string) {
+  /* Mark as generating */
+  const store = useGoalStore.getState();
+  store.updateGoal(goalId, { aiCourseStatus: "generating" });
+
+  try {
+    const result = await processGoal(goalId, title, description);
+
+    if (result.success && result.data?.modules && result.data.modules.length > 0) {
+      const course: GoalCourseModule[] = result.data.modules.map((m, i) => ({
+        title: m.title ?? `Module ${i + 1}`,
+        description: m.description ?? "",
+        books: (m.books ?? []).map((b) => ({
+          title: b.title,
+          author: b.author,
+          description: b.description,
+          chapters: (b.chapters ?? []).map((c) => ({
+            title: c.title,
+            content: c.content,
+          })),
+        })),
+        topicTest: m.topicTest
+          ? {
+              title: m.topicTest.title,
+              questions: m.topicTest.questions.map((q) => ({
+                question: q.question,
+                options: q.options,
+                correctIndex: q.correctIndex,
+              })),
+            }
+          : undefined,
+      }));
+      useGoalStore.getState().updateGoal(goalId, {
+        course,
+        aiCourseStatus: "ready",
+      });
+    } else {
+      useGoalStore.getState().updateGoal(goalId, { aiCourseStatus: "failed" });
+    }
+  } catch {
+    useGoalStore.getState().updateGoal(goalId, { aiCourseStatus: "failed" });
+  }
 }
 
 export const useGoalStore = create<GoalState>((set, get) => ({
@@ -218,6 +271,8 @@ export const useGoalStore = create<GoalState>((set, get) => ({
       id: nextId(),
       steps,
       progress: 0,
+      course: null,
+      aiCourseStatus: "idle",
       last_touched_step_at: null,
       created_at: now,
       updated_at: now,
@@ -225,6 +280,11 @@ export const useGoalStore = create<GoalState>((set, get) => ({
     const goals = [goal, ...get().goals];
     set({ goals });
     persistIfGuest(goals);
+
+    /* Fire-and-forget AI enrichment (skip for guest users) */
+    if (useAuthStore.getState().isAuthenticated) {
+      enrichGoalWithAICourse(goal.id, goal.title, goal.description);
+    }
   },
 
   updateGoal: (id, partial) => {
@@ -262,4 +322,11 @@ export const useGoalStore = create<GoalState>((set, get) => ({
   },
 
   setCreating: (v) => set({ creating: v }),
+
+  generateCourse: (goalId) => {
+    const goal = get().goals.find((g) => g.id === goalId);
+    if (goal) {
+      enrichGoalWithAICourse(goalId, goal.title, goal.description);
+    }
+  },
 }));
