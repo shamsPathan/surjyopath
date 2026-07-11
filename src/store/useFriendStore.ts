@@ -65,9 +65,21 @@ export const useFriendStore = create<FriendState>((set, get) => ({
     set({ searchQuery: query, isSearching: true });
     try {
       const results = await api.searchUsers(query);
-      // Filter out yourself
       const userId = useAuthStore.getState().user?.id;
-      set({ searchResults: results.filter((r) => r.id !== userId) });
+      const { friends, outgoingRequests } = get();
+
+      // Build sets of IDs to exclude
+      const friendIds = new Set(friends.map((f) => f.friend_id));
+      const pendingIds = new Set(outgoingRequests.map((r) => r.to_user_id));
+
+      const filtered = results.filter((r) => {
+        if (r.id === userId) return false;
+        if (friendIds.has(r.id)) return false;
+        if (pendingIds.has(r.id)) return false;
+        return true;
+      });
+
+      set({ searchResults: filtered });
     } catch (err) {
       console.warn("Search failed:", err);
       set({ searchResults: [] });
@@ -87,7 +99,11 @@ export const useFriendStore = create<FriendState>((set, get) => ({
       await api.sendFriendRequest(user.id, toUserId);
       // Reload outgoing requests
       const outgoing = await api.getOutgoingRequests(user.id);
-      set({ outgoingRequests: outgoing });
+      // Remove this user from search results so they disappear immediately
+      const searchResults = get().searchResults.filter(
+        (r) => r.id !== toUserId,
+      );
+      set({ outgoingRequests: outgoing, searchResults });
     } catch (err) {
       console.warn("Failed to send request:", err);
     }

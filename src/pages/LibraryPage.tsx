@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import {
   BookOpen,
   ChevronDown,
@@ -11,6 +11,8 @@ import {
   Lightbulb,
   BookMarked,
   BookOpenText,
+  ChevronLeft,
+  List,
 } from "lucide-react";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { useAuthStore } from "../store/useAuthStore";
@@ -198,6 +200,102 @@ function BookCard({
   );
 }
 
+/* ─── Category Navigation ─── */
+
+const bookCategoryIcons: Record<string, React.ReactNode> = {
+  "All": <Library size={14} />,
+};
+
+function CategoryNav({
+  categories,
+  counts,
+  selected,
+  onSelect,
+}: {
+  categories: readonly string[];
+  counts: Record<string, number>;
+  selected: string;
+  onSelect: (cat: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  const scrollBy = useCallback((direction: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = direction === "left" ? -220 : 220;
+    el.scrollBy({ left: amount, behavior: "smooth" });
+    setTimeout(checkScroll, 300);
+  }, [checkScroll]);
+
+  useEffect(() => {
+    requestAnimationFrame(checkScroll);
+  }, [categories, checkScroll]);
+
+  return (
+    <div className="mb-6 relative group">
+      {canScrollLeft && (
+        <button
+          onClick={() => scrollBy("left")}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface/90 backdrop-blur-sm border border-border shadow-md flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-active transition-all duration-150 active:scale-90 opacity-0 group-hover:opacity-100"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft size={16} />
+        </button>
+      )}
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none scroll-smooth"
+      >
+        {categories.map((cat) => {
+          const isActive = selected === cat;
+          const count = counts[cat] ?? 0;
+          return (
+            <button
+              key={cat}
+              onClick={() => onSelect(cat)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 border shrink-0 ${
+                isActive
+                  ? "bg-primary text-white border-primary shadow-sm"
+                  : "bg-surface text-muted border-border hover:border-primary/30 hover:text-foreground"
+              }`}
+              aria-pressed={isActive}
+            >
+              {bookCategoryIcons[cat] ?? <BookOpen size={14} />}
+              <span>{cat}</span>
+              {count > 0 && (
+                <span className={`ml-0.5 text-[10px] px-1.5 py-px rounded-full ${isActive ? "bg-white/20" : "bg-surface-hover"}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      {canScrollRight && (
+        <button
+          onClick={() => scrollBy("right")}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface/90 backdrop-blur-sm border border-border shadow-md flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-active transition-all duration-150 active:scale-90 opacity-0 group-hover:opacity-100"
+          aria-label="Scroll right"
+        >
+          <ChevronRight size={16} />
+        </button>
+      )}
+      <div className="pointer-events-none absolute left-0 top-0 bottom-1 w-8 bg-gradient-to-r from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+    </div>
+  );
+}
+
 /* ─── Main Component ─── */
 
 export default function LibraryPage() {
@@ -217,6 +315,9 @@ export default function LibraryPage() {
   const [readerOpen, setReaderOpen] = useState(false);
   const [readerBookId, setReaderBookId] = useState<string | null>(null);
   const [readerChapterId, setReaderChapterId] = useState<string | null>(null);
+
+  // Category filter — placed BEFORE early return to uphold hook order
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   const activeBook = readerBookId
     ? books.find((b) => b.id === readerBookId) ?? null
@@ -241,6 +342,21 @@ export default function LibraryPage() {
     setReaderChapterId(null);
   }, []);
 
+  /* Derive categories from books — before early return to keep hook order stable */
+  const allCategories = useMemo(() => {
+    const cats = new Set<string>();
+    books.forEach((b) => { if (b.category) cats.add(b.category); });
+    return ["All", ...Array.from(cats).sort()];
+  }, [books]);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { All: books.length };
+    books.forEach((b) => {
+      if (b.category) counts[b.category] = (counts[b.category] ?? 0) + 1;
+    });
+    return counts;
+  }, [books]);
+
   useEffect(() => {
     initialize();
   }, [profile, initialize]);
@@ -254,11 +370,19 @@ export default function LibraryPage() {
   }
 
   // Separate course books (with module_id) from general books
-  const courseBooks = books.filter((b) => b.module_id != null);
-  const generalBooks = books.filter((b) => b.module_id == null);
+  const allCourseBooks = books.filter((b) => b.module_id != null);
+  const allGeneralBooks = books.filter((b) => b.module_id == null);
+
+  const courseBooks = selectedCategory === "All"
+    ? allCourseBooks
+    : allCourseBooks.filter((b) => b.category === selectedCategory);
+
+  const generalBooks = selectedCategory === "All"
+    ? allGeneralBooks
+    : allGeneralBooks.filter((b) => b.category === selectedCategory);
 
   const hasContent =
-    books.length > 0 || suggestedBooks.length > 0 || courseBooks.length > 0;
+    books.length > 0 || suggestedBooks.length > 0 || allCourseBooks.length > 0;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -279,6 +403,16 @@ export default function LibraryPage() {
         </div>
         <div className="mt-4 h-px bg-gradient-to-r from-border via-border to-transparent" />
       </div>
+
+      {/* Category filter bar */}
+      {books.length > 0 && (
+        <CategoryNav
+          categories={allCategories}
+          counts={categoryCounts}
+          selected={selectedCategory}
+          onSelect={setSelectedCategory}
+        />
+      )}
 
       {!hasContent ? (
         <EmptyState

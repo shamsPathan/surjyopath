@@ -11,11 +11,12 @@ interface TopicTestQuizProps {
   title: string;
   questions: QuizQuestion[];
   onClose: () => void;
+  onPass: () => void;
 }
 
 type QuizPhase = "intro" | "taking" | "result";
 
-export default function TopicTestQuiz({ title, questions, onClose }: TopicTestQuizProps) {
+export default function TopicTestQuiz({ title, questions, onClose, onPass }: TopicTestQuizProps) {
   const [phase, setPhase] = useState<QuizPhase>("intro");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
@@ -32,6 +33,12 @@ export default function TopicTestQuiz({ title, questions, onClose }: TopicTestQu
   };
 
   const handleSubmitQuiz = () => {
+    const allCorrect = questions.every((q, i) => answers[i] === q.correctIndex);
+    if (allCorrect) {
+      onPass();
+      onClose();
+      return;
+    }
     setSubmitted(true);
     setPhase("result");
   };

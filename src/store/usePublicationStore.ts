@@ -4,6 +4,7 @@ import type { Thought } from "../types/thought";
 import { useAuthStore } from "./useAuthStore";
 import * as guestStorage from "../lib/guestStorage";
 import { knockPolish } from "../services/aiService";
+import { categorizeByTags } from "../utils/categorizer";
 
 interface PublicationState {
   publications: Publication[];
@@ -27,6 +28,9 @@ interface PublicationState {
 
   /* AI Polish */
   polishPublication: (id: string) => Promise<void>;
+
+  /* Categorization */
+  categorizeAll: () => void;
 
   /* Social actions */
   toggleLike: (id: string) => void;
@@ -56,6 +60,7 @@ export const usePublicationStore = create<PublicationState>((set, get) => ({
         set({ publications: stored });
       }
     }
+    get().categorizeAll();
   },
 
   selectPublication: (id) => set({ selectedId: id }),
@@ -81,6 +86,7 @@ export const usePublicationStore = create<PublicationState>((set, get) => ({
       comments_count: 0,
       liked_by_user: false,
       is_polished: false,
+      category: categorizeByTags(thought.tags),
       status: "published",
       created_at: now,
       updated_at: now,
@@ -136,6 +142,15 @@ export const usePublicationStore = create<PublicationState>((set, get) => ({
     } finally {
       set({ polishingId: null });
     }
+  },
+
+  categorizeAll: () => {
+    const publications = get().publications.map((p) => {
+      if (p.category) return p;
+      return { ...p, category: categorizeByTags(p.tags) };
+    });
+    set({ publications });
+    persistIfGuest(publications);
   },
 
   toggleLike: (id) => {

@@ -204,13 +204,13 @@ function generateLearningPath(title: string, description: string, direction?: st
  * Fire-and-forget AI enrichment: generates a full course with modules
  * for the given goal and updates the store when complete.
  */
-async function enrichGoalWithAICourse(goalId: string, title: string, description: string) {
+async function enrichGoalWithAICourse(goalId: string, title: string, description: string, direction?: string | null) {
   /* Mark as generating */
   const store = useGoalStore.getState();
   store.updateGoal(goalId, { aiCourseStatus: "generating" });
 
   try {
-    const result = await processGoal(goalId, title, description);
+    const result = await processGoal(goalId, title, description, direction);
 
     if (result.success && result.data?.modules && result.data.modules.length > 0) {
       const course: GoalCourseModule[] = result.data.modules.map((m, i) => ({
@@ -283,7 +283,7 @@ export const useGoalStore = create<GoalState>((set, get) => ({
 
     /* Fire-and-forget AI enrichment (skip for guest users) */
     if (useAuthStore.getState().isAuthenticated) {
-      enrichGoalWithAICourse(goal.id, goal.title, goal.description);
+      enrichGoalWithAICourse(goal.id, goal.title, goal.description, goal.direction);
     }
   },
 
@@ -326,7 +326,7 @@ export const useGoalStore = create<GoalState>((set, get) => ({
   generateCourse: (goalId) => {
     const goal = get().goals.find((g) => g.id === goalId);
     if (goal) {
-      enrichGoalWithAICourse(goalId, goal.title, goal.description);
+      enrichGoalWithAICourse(goalId, goal.title, goal.description, goal.direction);
     }
   },
 }));

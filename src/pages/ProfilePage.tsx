@@ -1,9 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { User, PenLine, FolderOpen, Newspaper, Target, TrendingUp, Timer, Award, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  User, PenLine, FolderOpen, Newspaper, Target,
+  TrendingUp, Timer, Award, Sparkles, MessageSquare,
+  Send, ArrowLeft, CheckCheck, Check,
+  Clock,
+} from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useJournalStore } from "../store/useJournalStore";
 import { useGoalStore } from "../store/useGoalStore";
 import { usePublicationStore } from "../store/usePublicationStore";
+import { useMessageStore } from "../store/useMessageStore";
+import type { ConversationSummary } from "../api/types";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -11,6 +19,54 @@ export default function ProfilePage() {
   const thoughts = useJournalStore((s) => s.thoughts);
   const goals = useGoalStore((s) => s.goals);
   const publications = usePublicationStore((s) => s.publications);
+  const conversations = useMessageStore((s) => s.conversations);
+  const loadConversations = useMessageStore((s) => s.loadConversations);
+  const activeConversation = useMessageStore((s) => s.activeConversation);
+  const openConversation = useMessageStore((s) => s.openConversation);
+  const sendMessage = useMessageStore((s) => s.sendMessage);
+  const closeConversation = useMessageStore((s) => s.closeConversation);
+  const chatLoading = useMessageStore((s) => s.isLoadingMessages);
+  const conversationMessages = activeConversation?.messages ?? [];
+
+  const [activeChat, setActiveChat] = useState<ConversationSummary | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const activeUserId = profile?.id;
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [conversationMessages]);
+
+  const handleOpenChat = useCallback(
+    (conv: ConversationSummary) => {
+      setActiveChat(conv);
+      openConversation(conv.other_user.id);
+      setMessageText("");
+    },
+    [openConversation],
+  );
+
+  const handleSend = useCallback(async () => {
+    if (!messageText.trim() || !activeChat) return;
+    await sendMessage(activeChat.other_user.id, messageText.trim());
+    setMessageText("");
+  }, [messageText, activeChat, sendMessage]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    [handleSend],
+  );
 
   const totalThoughts = thoughts.length;
   const analysedThoughts = thoughts.filter((t) => t.status === "ready").length;
@@ -234,6 +290,183 @@ export default function ProfilePage() {
                 <p className="text-xs text-muted/60 mt-1">
                   Start writing thoughts or setting goals to see your journey here
                 </p>
+              </div>
+            )}
+          </div>
+
+          {/* Messages Section */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider flex items-center gap-2">
+                <MessageSquare size={14} className="text-primary" />
+                Messages
+              </h2>
+              {activeChat && (
+                <button
+                  onClick={() => { setActiveChat(null); closeConversation(); }}
+                  className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors duration-200 cursor-pointer"
+                >
+                  <ArrowLeft size={14} />
+                  All conversations
+                </button>
+              )}
+            </div>
+
+            {activeChat ? (
+              /* ── Chat View ── */
+              <div className="rounded-xl border border-border bg-surface overflow-hidden">
+                {/* Chat header */}
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-bg/30">
+                  <span className="text-lg">{activeChat.other_user.avatar_emoji || "💬"}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {activeChat.other_user.nickname}
+                    </p>
+                    {activeChat.last_message && (
+                      <p className="text-[10px] text-muted/60">
+                        Last message {formatRelativeTime(activeChat.last_message.created_at)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="h-64 overflow-y-auto p-4 space-y-3">
+                  {chatLoading && conversationMessages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : conversationMessages.length > 0 ? (
+                    conversationMessages.map((msg) => {
+                      const isMine = msg.sender_id === activeUserId;
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+                        >
+                          <div
+                            className={`max-w-[75%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                              isMine
+                                ? "bg-primary text-primary-foreground rounded-br-md"
+                                : "bg-bg/60 text-foreground border border-border/50 rounded-bl-md"
+                            }`}
+                          >
+                            <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                            <div
+                              className={`flex items-center gap-1 mt-1 ${
+                                isMine ? "justify-end" : "justify-start"
+                              }`}
+                            >
+                              <span className="text-[10px] opacity-60">
+                                {new Date(msg.created_at).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                              {isMine && (
+                                <span className="text-[10px] opacity-60">
+                                  {msg.is_read ? (
+                                    <CheckCheck size={11} />
+                                  ) : (
+                                    <Check size={11} />
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center">
+                      <MessageSquare size={20} className="text-muted/40 mb-2" />
+                      <p className="text-xs text-muted">No messages yet</p>
+                      <p className="text-[10px] text-muted/60 mt-1">
+                        Send a message to start the conversation
+                      </p>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Message input */}
+                <div className="border-t border-border bg-bg/20 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Type a message..."
+                      className="flex-1 bg-bg/60 border border-border rounded-lg px-3.5 py-2 text-sm text-foreground placeholder:text-muted/50 focus:outline-none focus:border-primary/50 transition-colors duration-200"
+                    />
+                    <button
+                      onClick={handleSend}
+                      disabled={!messageText.trim()}
+                      className="w-9 h-9 rounded-lg bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 active:scale-90 cursor-pointer shrink-0"
+                    >
+                      <Send size={15} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ── Conversations List ── */
+              <div className="space-y-1">
+                {chatLoading && conversations.length === 0 ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : conversations.length > 0 ? (
+                  conversations.map((conv) => {
+                    const unreadCount =
+                      conv.unread_count > 0 ? conv.unread_count : 0;
+                    return (
+                      <button
+                        key={conv.other_user.id}
+                        onClick={() => handleOpenChat(conv)}
+                        className="w-full flex items-center gap-3 rounded-lg border border-border/50 bg-surface/50 px-4 py-3 hover:bg-surface-hover transition-all duration-200 active:scale-[0.98] cursor-pointer group"
+                      >
+                        <span className="text-xl shrink-0">
+                          {conv.other_user.avatar_emoji || "💬"}
+                        </span>
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-200">
+                            {conv.other_user.nickname}
+                          </p>
+                          {conv.last_message && (
+                            <p className="text-xs text-muted/70 truncate">
+                              {conv.last_message.sender_id === activeUserId
+                                ? "You: "
+                                : ""}
+                              {conv.last_message.content}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          {conv.last_message && (
+                            <span className="text-[10px] text-muted/50">
+                              {formatRelativeTime(conv.last_message.created_at)}
+                            </span>
+                          )}
+                          {unreadCount > 0 && (
+                            <span className="min-w-[18px] h-[18px] rounded-full bg-primary text-[10px] font-semibold text-primary-foreground flex items-center justify-center px-1">
+                              {unreadCount > 99 ? "99+" : unreadCount}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl border border-border bg-surface p-6 text-center">
+                    <MessageSquare size={24} className="mx-auto text-muted/40 mb-2" />
+                    <p className="text-sm text-muted">No conversations yet</p>
+                    <p className="text-xs text-muted/60 mt-1">
+                      Find friends to connect and start messaging!
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>

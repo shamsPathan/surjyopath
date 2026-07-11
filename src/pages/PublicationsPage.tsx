@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Newspaper,
@@ -16,12 +16,49 @@ import {
   Link,
   BookOpen,
   Sparkles,
+  Building2,
+  Monitor,
+  List,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import PublicationCard from "../components/PublicationCard";
 import { usePublicationStore } from "../store/usePublicationStore";
 import { useJournalStore } from "../store/useJournalStore";
 import { useAuthStore } from "../store/useAuthStore";
 import type { Publication } from "../types/publication";
+
+/* ─── Category config ─── */
+
+const CATEGORIES = [
+  "All",
+  "Personal Growth",
+  "Health & Wellness",
+  "Creativity & Projects",
+  "Relationships",
+  "Daily Life",
+  "Work & Career",
+  "Tech & Science",
+  "Learning & Reading",
+  "Gratitude",
+  "Reflections",
+  "General",
+] as const;
+
+const categoryIcons: Record<string, React.ReactNode> = {
+  "All": <List size={14} />,
+  "Personal Growth": <Sparkles size={14} />,
+  "Health & Wellness": <Heart size={14} />,
+  "Creativity & Projects": <BookOpen size={14} />,
+  "Relationships": <MessageCircle size={14} />,
+  "Daily Life": <Clock size={14} />,
+  "Work & Career": <Building2 size={14} />,
+  "Tech & Science": <Monitor size={14} />,
+  "Learning & Reading": <BookOpen size={14} />,
+  "Gratitude": <Sparkles size={14} />,
+  "Reflections": <Eye size={14} />,
+  "General": <Tag size={14} />,
+};
 
 /* ─── Tag colour mapping ─── */
 
@@ -130,6 +167,11 @@ function ArticleDetail({ publication }: { publication: Publication }) {
             <MessageCircle size={12} />
             {publication.comments_count} {publication.comments_count === 1 ? "comment" : "comments"}
           </span>
+          {publication.category && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+              {publication.category}
+            </span>
+          )}
         </div>
 
         {/* Tags */}
@@ -354,6 +396,113 @@ function PublishModal({ onClose }: { onClose: () => void }) {
 }
 
 /* ==============================================================
+   ─── CATEGORY NAVIGATION ───
+   ============================================================== */
+
+function CategoryNav({
+  categories,
+  counts,
+  selected,
+  onSelect,
+}: {
+  categories: readonly string[];
+  counts: Record<string, number>;
+  selected: string;
+  onSelect: (cat: string) => void;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  const scrollBy = useCallback((direction: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = direction === "left" ? -220 : 220;
+    el.scrollBy({ left: amount, behavior: "smooth" });
+    // Check again after animation
+    setTimeout(checkScroll, 300);
+  }, [checkScroll]);
+
+  /* Re-check on mount and when categories change */
+  useEffect(() => {
+    requestAnimationFrame(checkScroll);
+  }, [categories, checkScroll]);
+
+  return (
+    <div className="mb-6 relative group">
+      {/* Left scroll button */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scrollBy("left")}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface/90 backdrop-blur-sm border border-border shadow-md flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-active transition-all duration-150 active:scale-90 opacity-0 group-hover:opacity-100"
+          aria-label="Scroll left"
+        >
+          <ChevronLeft size={16} />
+        </button>
+      )}
+
+      {/* Scrollable chips */}
+      <div
+        ref={scrollRef}
+        onScroll={checkScroll}
+        className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none scroll-smooth"
+      >
+        {categories.map((cat) => {
+          const isActive = selected === cat;
+          const count = counts[cat] ?? 0;
+          return (
+            <button
+              key={cat}
+              onClick={() => onSelect(cat)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all duration-150 active:scale-95 border shrink-0 ${
+                isActive
+                  ? "bg-primary text-white border-primary shadow-sm"
+                  : "bg-surface text-muted border-border hover:border-primary/30 hover:text-foreground"
+              }`}
+              aria-pressed={isActive}
+            >
+              {categoryIcons[cat]}
+              <span>{cat}</span>
+              {count > 0 && (
+                <span
+                  className={`ml-0.5 text-[10px] px-1.5 py-px rounded-full ${
+                    isActive ? "bg-white/20" : "bg-surface-hover"
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Right scroll button */}
+      {canScrollRight && (
+        <button
+          onClick={() => scrollBy("right")}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-surface/90 backdrop-blur-sm border border-border shadow-md flex items-center justify-center text-muted hover:text-foreground hover:bg-surface-active transition-all duration-150 active:scale-90 opacity-0 group-hover:opacity-100"
+          aria-label="Scroll right"
+        >
+          <ChevronRight size={16} />
+        </button>
+      )}
+
+      {/* Fade edges to hint at more content */}
+      <div className="pointer-events-none absolute left-0 top-0 bottom-1 w-8 bg-gradient-to-r from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+      <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-background to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-150" />
+    </div>
+  );
+}
+
+/* ==============================================================
    ─── MAIN PAGE ───
    ============================================================== */
 
@@ -365,6 +514,7 @@ export default function PublicationsPage() {
   const publishModalOpen = usePublicationStore((s) => s.publishModalOpen);
   const setPublishModalOpen = usePublicationStore((s) => s.setPublishModalOpen);
 
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [guestBannerDismissed, setGuestBannerDismissed] = useState(
     () => sessionStorage.getItem("pub_guest_banner_dismissed") === "true",
   );
@@ -379,6 +529,29 @@ export default function PublicationsPage() {
     navigate("/auth");
   };
 
+  /* ── Category counts & filtered list ── */
+  const { categoryCounts, filteredPublications } = useMemo(() => {
+    const counts: Record<string, number> = { All: 0 };
+    for (const cat of CATEGORIES) {
+      if (cat !== "All") counts[cat] = 0;
+    }
+
+    for (const pub of publications) {
+      const cat = pub.category || "General";
+      counts["All"] = (counts["All"] ?? 0) + 1;
+      counts[cat] = (counts[cat] ?? 0) + 1;
+    }
+
+    const filtered =
+      selectedCategory === "All"
+        ? publications
+        : publications.filter(
+            (p) => (p.category || "General") === selectedCategory,
+          );
+
+    return { categoryCounts: counts, filteredPublications: filtered };
+  }, [publications, selectedCategory]);
+
   const selectedPublication = selectedId
     ? publications.find((p) => p.id === selectedId)
     : null;
@@ -391,7 +564,7 @@ export default function PublicationsPage() {
   return (
     <div className="max-w-3xl mx-auto">
       {/* Page header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent/60 flex items-center justify-center shadow-lg shadow-primary/10">
@@ -453,38 +626,76 @@ export default function PublicationsPage() {
       {/* Publish modal */}
       {publishModalOpen && <PublishModal onClose={() => setPublishModalOpen(false)} />}
 
+      {/* Category navigation */}
+      <CategoryNav
+        categories={CATEGORIES}
+        counts={categoryCounts}
+        selected={selectedCategory}
+        onSelect={setSelectedCategory}
+      />
+
       {/* Publications list or empty state */}
-      {publications.length === 0 ? (
-        <div className="text-center py-20">
+      {filteredPublications.length === 0 ? (
+        <div className="text-center py-16">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface border border-border flex items-center justify-center">
             <Newspaper size={28} className="text-muted" />
           </div>
-          <h2 className="text-lg font-heading font-semibold text-foreground mb-1">
-            No publications yet
-          </h2>
-          <p className="text-sm text-muted max-w-xs mx-auto mb-6">
-            Refine a thought with AI analysis and publish it for others to read,
-            like, and comment on. Your voice matters here.
-          </p>
-          <button
-            onClick={() => setPublishModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all duration-150 active:scale-95"
-          >
-            <Plus size={16} />
-            Publish your first article
-          </button>
+          {selectedCategory === "All" ? (
+            <>
+              <h2 className="text-lg font-heading font-semibold text-foreground mb-1">
+                No publications yet
+              </h2>
+              <p className="text-sm text-muted max-w-xs mx-auto mb-6">
+                Refine a thought with AI analysis and publish it for others to read,
+                like, and comment on. Your voice matters here.
+              </p>
+              <button
+                onClick={() => setPublishModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all duration-150 active:scale-95"
+              >
+                <Plus size={16} />
+                Publish your first article
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-heading font-semibold text-foreground mb-1">
+                Nothing in "{selectedCategory}"
+              </h2>
+              <p className="text-sm text-muted max-w-xs mx-auto mb-6">
+                No publications in this category yet. Try another category or publish
+                something new.
+              </p>
+              <button
+                onClick={() => setSelectedCategory("All")}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-surface text-foreground border border-border hover:bg-surface-hover transition-all duration-150 active:scale-95"
+              >
+                View all publications
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted">
-              Published articles
+              {selectedCategory === "All"
+                ? "All publications"
+                : selectedCategory}
               <span className="ml-2 text-xs bg-surface-hover px-2 py-0.5 rounded-full">
-                {publications.length}
+                {filteredPublications.length}
               </span>
             </p>
+            {selectedCategory !== "All" && (
+              <button
+                onClick={() => setSelectedCategory("All")}
+                className="text-xs text-muted hover:text-foreground transition-colors duration-150"
+              >
+                Clear filter
+              </button>
+            )}
           </div>
-          {publications.map((pub) => (
+          {filteredPublications.map((pub) => (
             <PublicationCard key={pub.id} publication={pub} />
           ))}
         </div>

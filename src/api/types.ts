@@ -189,6 +189,25 @@ export interface Notification {
   created_at: string;
 }
 
+export interface Message {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  content: string;
+  thought_id: string | null;
+  goal_id: string | null;
+  is_read: boolean;
+  created_at: string;
+  sender?: UserProfile;
+  recipient?: UserProfile;
+}
+
+export interface ConversationSummary {
+  other_user: UserProfile;
+  last_message: Message;
+  unread_count: number;
+}
+
 export interface AIAnalysisResponse {
   thoughtId: string;
   analysis: ThoughtAnalysis;
@@ -217,4 +236,8 @@ export interface GoalCourseResponse {
       }[];
     };
   }[];
+  /** True if this course was served from the Goal Pattern Knowledge Base cache */
+  fromCache: boolean;
+  /** AI-generated tags for this goal pattern */
+  tags?: string[];
 }
