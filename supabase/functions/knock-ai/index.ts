@@ -2,15 +2,15 @@
  * Knock AI — Edge Function
  *
  * Analyses thoughts and processes goals using Fireworks AI (or mock mode).
- * Called by the frontend AI service.
+ * Includes a Goal Pattern Knowledge Base — caches course structures by
+ * normalized title + direction so repeated goals skip the AI call.
  *
  * POST /knock-ai
- * Body: { type: "thought" | "goal" | "polish", content: string, title?: string, apiKey?: string }
- *
- * Returns structured analysis matching the frontend types.
+ * Body: { type: "thought" | "goal" | "polish", content: string, title?: string, direction?: string, apiKey?: string }
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const FIREWORKS_URL = "https://api.fireworks.ai/inference/v1/chat/completions";
 const MODEL = "accounts/fireworks/models/minimax-m2p7";
@@ -22,12 +22,21 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+/* ─── Supabase client (for pattern DB access) ─── */
+function getSupabaseAdmin() {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required");
+  return createClient(url, key);
+}
+
 /* ─── Request types ─── */
 
 interface KnockRequest {
   type: "thought" | "goal" | "polish";
   content: string;
   title?: string;
+  direction?: string;
   apiKey?: string;
 }
 
@@ -71,6 +80,33 @@ interface GoalCourseModule {
 interface GoalCourseResponse {
   goalId: string;
   modules: GoalCourseModule[];
+  fromCache: boolean;
+  tags?: string[];
+}
+
+/* ─── Title normalisation ─── */
+
+const PREFIXES_TO_STRIP = [
+  "i want to", "i need to", "i'd like to", "i would like to",
+  "help me", "how to", "how do i", "how can i",
+  "what is the best way to", "what's the best way to",
+  "i wish to", "i aim to", "i plan to", "i'm trying to",
+];
+
+function normalizeTitle(title: string): string {
+  let t = title.trim().toLowerCase();
+  // Strip common prefixes
+  for (const p of PREFIXES_TO_STRIP) {
+    if (t.startsWith(p)) {
+      t = t.slice(p.length).trim();
+      break;
+    }
+  }
+  // Remove punctuation
+  t = t.replace(/[^\w\s]/g, "").trim();
+  // Collapse whitespace
+  t = t.replace(/\s+/g, " ");
+  return t;
 }
 
 /* ─── Prompt templates ─── */
@@ -112,7 +148,7 @@ function buildGoalPrompt(title: string, description: string): string {
 Goal: "${title}"
 Description: "${description}"
 
-Return valid JSON only, with no markdown formatting. Generate a 3-module course structure:
+Return valid JSON only, with no markdown formatting. Generate a 3-module course structure with search tags:
 
 {
   "modules": [
@@ -143,7 +179,8 @@ Return valid JSON only, with no markdown formatting. Generate a 3-module course 
         ]
       }
     }
-  ]
+  ],
+  "tags": ["tag1", "tag2", "tag3"]
 }
 
 Requirements:
@@ -152,7 +189,8 @@ Requirements:
 - Module 3: Mastery/sharing
 - Each module: 1 book with 2 chapters, 1 topic test with 2-3 questions
 - Chapters should be substantive, not generic filler
-- Tests should genuinely test understanding`;
+- Tests should genuinely test understanding
+- Tags: generate 3-6 single-word or short-phrase tags that describe this goal (e.g. ["quitting", "smoking", "addiction", "health", "habit"]). These help future users find this pattern.`;
 }
 
 function buildPolishPrompt(content: string): string {
@@ -175,6 +213,75 @@ Rules:
 - Improve clarity and flow
 - Strengthen the opening and closing
 - Suggest improvements honestly — if it's already good, say so`;
+}
+
+/* ─── Pattern Knowledge Base ─── */
+
+/**
+ * Try to find a cached goal pattern from the database.
+ * Matches on normalized_title + direction (strict).
+ */
+async function findPattern(
+  normalizedTitle: string,
+  direction: string | undefined,
+): Promise<{ course_data: GoalCourseModule[]; tags: string[] } | null> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const targetDir = direction || "unknown";
+
+    const { data, error } = await supabase
+      .from("goal_patterns")
+      .select("course_data, tags, id, use_count")
+      .eq("normalized_title", normalizedTitle)
+      .eq("direction", targetDir)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    // Increment use_count asynchronously (fire-and-forget — don't block the response)
+    supabase
+      .from("goal_patterns")
+      .update({ use_count: (data.use_count || 0) + 1, updated_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .then().catch(() => {});
+
+    return {
+      course_data: data.course_data as GoalCourseModule[],
+      tags: (data.tags as string[]) || [],
+    };
+  } catch (err) {
+    console.warn("Pattern lookup failed, proceeding with AI:", err);
+    return null;
+  }
+}
+
+/**
+ * Save a newly generated course as a goal pattern for future reuse.
+ */
+async function savePattern(
+  normalizedTitle: string,
+  direction: string | undefined,
+  tags: string[],
+  courseData: GoalCourseModule[],
+): Promise<void> {
+  try {
+    const supabase = getSupabaseAdmin();
+    const targetDir = direction || "unknown";
+
+    await supabase.from("goal_patterns").upsert(
+      {
+        normalized_title: normalizedTitle,
+        direction: targetDir,
+        tags,
+        course_data: courseData,
+        use_count: 1,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "normalized_title, direction" },
+    );
+  } catch (err) {
+    console.warn("Failed to save goal pattern:", err);
+  }
 }
 
 /* ─── Fireworks API call ─── */
@@ -217,6 +324,27 @@ async function callFireworks(
 }
 
 /* ─── Mock fallback ─── */
+
+const MOCK_TAGS_BY_KEYWORD: Record<string, string[]> = {
+  smoke: ["quitting", "smoking", "addiction", "health", "habit"],
+  quit: ["quitting", "addiction", "change", "habit"],
+  fitness: ["fitness", "health", "exercise", "wellness"],
+  health: ["health", "wellness", "lifestyle"],
+  learn: ["learning", "education", "skills", "growth"],
+  read: ["reading", "books", "learning", "knowledge"],
+  code: ["coding", "programming", "technology", "skills"],
+  write: ["writing", "creativity", "expression"],
+};
+
+function guessMockTags(title: string): string[] {
+  const lower = title.toLowerCase();
+  const found = new Set<string>();
+  for (const [keyword, tags] of Object.entries(MOCK_TAGS_BY_KEYWORD)) {
+    if (lower.includes(keyword)) tags.forEach((t) => found.add(t));
+  }
+  if (found.size === 0) found.add("general");
+  return Array.from(found);
+}
 
 function mockAnalyseThought(content: string, title?: string): ThoughtAnalysis {
   const lower = content.toLowerCase();
@@ -294,99 +422,104 @@ function mockAnalyseThought(content: string, title?: string): ThoughtAnalysis {
   };
 }
 
-function mockProcessGoal(title: string, _description: string): GoalCourseResponse {
+function mockProcessGoal(title: string, _description: string): { course: GoalCourseResponse; tags: string[] } {
+  const tags = guessMockTags(title);
   return {
-    goalId: "mock",
-    modules: [
-      {
-        title: "Understanding the Foundation",
-        description: "Build a solid understanding of the fundamentals before diving deeper.",
-        books: [{
-          title: "The Beginner's Guide to " + title,
-          author: "Sarah Mitchell",
-          description: "A comprehensive introduction covering all foundational concepts.",
-          chapters: [
-            {
-              title: "Getting Started",
-              content: "Everything begins with understanding where you are right now. Take a moment to reflect on your current knowledge and experience. This is your starting point, and every expert was once here too.\n\nThe key is consistency — showing up every day, even when progress feels slow. Small steps compound into remarkable results over time.\n\nTry this: Write down three things you already know about your goal, and three things you want to learn.",
-            },
-            {
-              title: "Building Your First Practice",
-              content: "Now that you've identified where you are, it's time to build a practice. Start with 10 minutes daily. The goal isn't perfection — it's showing up.\n\nCreate a simple routine:\n1. Set a fixed time each day\n2. Prepare your materials in advance\n3. Remove distractions\n4. Focus for 10 minutes\n5. Reflect for 2 minutes after\n\nConsistency beats intensity every time.",
-            },
-          ],
-        }],
-        topicTest: {
-          title: "Foundation Check",
-          questions: [
-            {
-              question: "What is the most important factor for making progress?",
-              options: ["Natural talent", "Consistency and showing up daily", "Having expensive tools", "Waiting for motivation"],
-              correctIndex: 1,
-            },
-            {
-              question: "How long should your initial practice session be?",
-              options: ["2 hours", "30 minutes", "10 minutes", "As long as you can"],
-              correctIndex: 2,
-            },
-          ],
+    tags,
+    course: {
+      goalId: "mock",
+      fromCache: false,
+      modules: [
+        {
+          title: "Understanding the Foundation",
+          description: "Build a solid understanding of the fundamentals before diving deeper.",
+          books: [{
+            title: "The Beginner's Guide to " + title,
+            author: "Sarah Mitchell",
+            description: "A comprehensive introduction covering all foundational concepts.",
+            chapters: [
+              {
+                title: "Getting Started",
+                content: "Everything begins with understanding where you are right now. Take a moment to reflect on your current knowledge and experience. This is your starting point, and every expert was once here too.\n\nThe key is consistency — showing up every day, even when progress feels slow. Small steps compound into remarkable results over time.\n\nTry this: Write down three things you already know about your goal, and three things you want to learn.",
+              },
+              {
+                title: "Building Your First Practice",
+                content: "Now that you've identified where you are, it's time to build a practice. Start with 10 minutes daily. The goal isn't perfection — it's showing up.\n\nCreate a simple routine:\n1. Set a fixed time each day\n2. Prepare your materials in advance\n3. Remove distractions\n4. Focus for 10 minutes\n5. Reflect for 2 minutes after\n\nConsistency beats intensity every time.",
+              },
+            ],
+          }],
+          topicTest: {
+            title: "Foundation Check",
+            questions: [
+              {
+                question: "What is the most important factor for making progress?",
+                options: ["Natural talent", "Consistency and showing up daily", "Having expensive tools", "Waiting for motivation"],
+                correctIndex: 1,
+              },
+              {
+                question: "How long should your initial practice session be?",
+                options: ["2 hours", "30 minutes", "10 minutes", "As long as you can"],
+                correctIndex: 2,
+              },
+            ],
+          },
         },
-      },
-      {
-        title: "Deepening Your Understanding",
-        description: "Go beyond the basics and start building real competence.",
-        books: [{
-          title: "Mastery Through Practice",
-          author: "David Chen",
-          description: "Advanced techniques for deepening your understanding and skill.",
-          chapters: [
-            {
-              title: "The Art of Deliberate Practice",
-              content: "Deliberate practice is the gold standard for skill development. Unlike casual repetition, deliberate practice involves:\n\n1. Clear specific goals\n2. Full concentration\n3. Immediate feedback\n4. Pushing just beyond your current ability\n\nIdentify one aspect of your goal that challenges you. Focus on just that aspect for your next practice session.",
-            },
-            {
-              title: "Learning from Feedback",
-              content: "Feedback is the breakfast of champions. Every mistake is data — information about what to adjust.\n\nCreate a feedback loop:\n- Practice → Get feedback → Adjust → Practice again\n\nSeek feedback from:\n- Your own reflection (journals)\n- Peers and mentors\n- Results and outcomes",
-            },
-          ],
-        }],
-        topicTest: {
-          title: "Deepening Check",
-          questions: [
-            {
-              question: "What is deliberate practice?",
-              options: ["Repeating the same thing", "Practicing with clear goals, focus, and feedback", "Practicing only when inspired", "Getting someone else to do the work"],
-              correctIndex: 1,
-            },
-          ],
+        {
+          title: "Deepening Your Understanding",
+          description: "Go beyond the basics and start building real competence.",
+          books: [{
+            title: "Mastery Through Practice",
+            author: "David Chen",
+            description: "Advanced techniques for deepening your understanding and skill.",
+            chapters: [
+              {
+                title: "The Art of Deliberate Practice",
+                content: "Deliberate practice is the gold standard for skill development. Unlike casual repetition, deliberate practice involves:\n\n1. Clear specific goals\n2. Full concentration\n3. Immediate feedback\n4. Pushing just beyond your current ability\n\nIdentify one aspect of your goal that challenges you. Focus on just that aspect for your next practice session.",
+              },
+              {
+                title: "Learning from Feedback",
+                content: "Feedback is the breakfast of champions. Every mistake is data — information about what to adjust.\n\nCreate a feedback loop:\n- Practice → Get feedback → Adjust → Practice again\n\nSeek feedback from:\n- Your own reflection (journals)\n- Peers and mentors\n- Results and outcomes",
+              },
+            ],
+          }],
+          topicTest: {
+            title: "Deepening Check",
+            questions: [
+              {
+                question: "What is deliberate practice?",
+                options: ["Repeating the same thing", "Practicing with clear goals, focus, and feedback", "Practicing only when inspired", "Getting someone else to do the work"],
+                correctIndex: 1,
+              },
+            ],
+          },
         },
-      },
-      {
-        title: "Sharing and Teaching Others",
-        description: "The final stage — sharing what you've learned solidifies understanding.",
-        books: [{
-          title: "The Teacher's Path",
-          author: "Maria Gonzalez",
-          description: "How teaching others accelerates your own learning journey.",
-          chapters: [
-            {
-              title: "Teaching as Learning",
-              content: "The best way to truly learn something is to teach it. When you explain a concept to someone else, you:\n\n- Identify gaps in your own understanding\n- Organize knowledge into clear structures\n- Discover new perspectives through questions\n\nTry explaining your goal area to a friend or writing a short guide.",
-            },
-          ],
-        }],
-        topicTest: {
-          title: "Mastery Check",
-          questions: [
-            {
-              question: "Why is teaching others considered the best way to learn?",
-              options: ["It makes you look smart", "It reveals gaps in your understanding", "It takes less time", "You don't need to practice anymore"],
-              correctIndex: 1,
-            },
-          ],
+        {
+          title: "Sharing and Teaching Others",
+          description: "The final stage — sharing what you've learned solidifies understanding.",
+          books: [{
+            title: "The Teacher's Path",
+            author: "Maria Gonzalez",
+            description: "How teaching others accelerates your own learning journey.",
+            chapters: [
+              {
+                title: "Teaching as Learning",
+                content: "The best way to truly learn something is to teach it. When you explain a concept to someone else, you:\n\n- Identify gaps in your own understanding\n- Organize knowledge into clear structures\n- Discover new perspectives through questions\n\nTry explaining your goal area to a friend or writing a short guide.",
+              },
+            ],
+          }],
+          topicTest: {
+            title: "Mastery Check",
+            questions: [
+              {
+                question: "Why is teaching others considered the best way to learn?",
+                options: ["It makes you look smart", "It reveals gaps in your understanding", "It takes less time", "You don't need to practice anymore"],
+                correctIndex: 1,
+              },
+            ],
+          },
         },
-      },
-    ],
+      ],
+    },
   };
 }
 
@@ -422,7 +555,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body: KnockRequest = await req.json();
-    const { type, content, title, apiKey } = body;
+    const { type, content, title, direction, apiKey } = body;
 
     if (!content || !type) {
       return new Response(
@@ -457,20 +590,55 @@ Deno.serve(async (req: Request) => {
     }
 
     if (type === "goal") {
+      const goalTitle = title || content;
+      const normalizedTitle = normalizeTitle(goalTitle);
       let course: GoalCourseResponse;
+      let tags: string[] = [];
 
-      if (effectiveKey) {
-        try {
-          const prompt = buildGoalPrompt(title || content, content);
-          const responseText = await callFireworks(prompt, effectiveKey);
-          const parsed = JSON.parse(responseText) as { modules: GoalCourseModule[] };
-          course = { goalId: "new", modules: parsed.modules };
-        } catch (err) {
-          console.warn("Fireworks AI call failed, using mock:", err);
-          course = mockProcessGoal(title || content, content);
-        }
+      // STEP 1: Check the Goal Pattern Knowledge Base first (strict match)
+      const cached = await findPattern(normalizedTitle, direction);
+
+      if (cached) {
+        // 🎯 CACHE HIT — return instantly, no AI cost
+        course = {
+          goalId: "new",
+          modules: cached.course_data,
+          fromCache: true,
+          tags: cached.tags,
+        };
+        console.log(`Pattern cache HIT: "${normalizedTitle}" (${direction || "no direction"})`);
       } else {
-        course = mockProcessGoal(title || content, content);
+        // 🚀 CACHE MISS — generate with AI
+        console.log(`Pattern cache MISS: "${normalizedTitle}" — generating with AI...`);
+        let generated: { modules: GoalCourseModule[]; tags?: string[] };
+
+        if (effectiveKey) {
+          try {
+            const prompt = buildGoalPrompt(goalTitle, content);
+            const responseText = await callFireworks(prompt, effectiveKey);
+            generated = JSON.parse(responseText) as { modules: GoalCourseModule[]; tags?: string[] };
+          } catch (err) {
+            console.warn("Fireworks AI call failed, using mock:", err);
+            const mockResult = mockProcessGoal(goalTitle, content);
+            generated = { modules: mockResult.course.modules, tags: mockResult.tags };
+          }
+        } else {
+          const mockResult = mockProcessGoal(goalTitle, content);
+          generated = { modules: mockResult.course.modules, tags: mockResult.tags };
+        }
+
+        tags = generated.tags || guessMockTags(goalTitle);
+
+        course = {
+          goalId: "new",
+          modules: generated.modules,
+          fromCache: false,
+          tags,
+        };
+
+        // STEP 2: Save to the pattern knowledge base for future reuse
+        await savePattern(normalizedTitle, direction, tags, generated.modules);
+        console.log(`New pattern saved: "${normalizedTitle}" with tags [${tags.join(", ")}]`);
       }
 
       return new Response(

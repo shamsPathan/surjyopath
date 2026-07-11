@@ -24,6 +24,8 @@ import type {
   FriendRequest,
   Friendship,
   SearchUserResult,
+  Message,
+  ConversationSummary,
 } from "./types";
 
 /* ─── Helpers ─── */
@@ -673,6 +675,128 @@ export async function markChapterRead(
   if (error) throw error;
 }
 
+/* ─── Messages ─── */
+
+export async function getConversations(userId: string): Promise<ConversationSummary[]> {
+  // Get all messages where user is sender or recipient
+  // Group by the other participant and return summary
+  const { data: sent, error: sentErr } = await supabase
+    .from("messages")
+    .select("*, recipient:recipient_id(id, nickname, avatar_emoji, bio, level, xp)")
+    .eq("sender_id", userId)
+    .order("created_at", { ascending: false });
+
+  const { data: received, error: recvErr } = await supabase
+    .from("messages")
+    .select("*, sender:sender_id(id, nickname, avatar_emoji, bio, level, xp)")
+    .eq("recipient_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (sentErr) throw sentErr;
+  if (recvErr) throw recvErr;
+
+  // Group by other user
+  const conversations = new Map<string, { other_user: UserProfile; last_message: Message; unread_count: number }>();
+
+  for (const msg of (sent ?? []) as unknown as Message[]) {
+    const otherId = msg.recipient_id;
+    const existing = conversations.get(otherId);
+    if (!existing || new Date(msg.created_at) > new Date(existing.last_message.created_at)) {
+      conversations.set(otherId, {
+        other_user: msg.recipient!,
+        last_message: { ...msg, recipient: undefined },
+        unread_count: 0,
+      });
+    }
+  }
+
+  for (const msg of (received ?? []) as unknown as Message[]) {
+    const otherId = msg.sender_id;
+    const existing = conversations.get(otherId);
+    if (!existing || new Date(msg.created_at) > new Date(existing.last_message.created_at)) {
+      conversations.set(otherId, {
+        other_user: msg.sender!,
+        last_message: { ...msg, sender: undefined },
+        unread_count: msg.is_read ? existing?.unread_count ?? 0 : (existing?.unread_count ?? 0) + 1,
+      });
+    } else if (!msg.is_read) {
+      existing!.unread_count += 1;
+    }
+  }
+
+  return Array.from(conversations.values()).sort(
+    (a, b) => new Date(b.last_message.created_at).getTime() - new Date(a.last_message.created_at).getTime(),
+  );
+}
+
+export async function getConversationMessages(
+  userId: string,
+  otherUserId: string,
+): Promise<Message[]> {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("*, sender:sender_id(id, nickname, avatar_emoji, bio, level, xp)")
+    .or(`and(sender_id.eq.${userId},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${userId})`)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as unknown as Message[];
+}
+
+export async function sendMessage(
+  senderId: string,
+  recipientId: string,
+  content: string,
+  thoughtId?: string,
+  goalId?: string,
+): Promise<void> {
+  const { error } = await supabase.from("messages").insert({
+    sender_id: senderId,
+    recipient_id: recipientId,
+    content,
+    thought_id: thoughtId ?? null,
+    goal_id: goalId ?? null,
+  });
+  if (error) throw error;
+
+  // Create notification for recipient
+  const { data: fromProfile } = await supabase
+    .from("users")
+    .select("nickname")
+    .eq("id", senderId)
+    .single();
+
+  await supabase.from("notifications").insert({
+    user_id: recipientId,
+    type: "friend_request", // use existing type — we can add "new_message" type later
+    title: "New Message",
+    body: `${fromProfile?.nickname ?? "Someone"} sent you a message!`,
+    metadata: { from_user_id: senderId, type: "message" },
+  });
+}
+
+export async function markMessagesAsRead(
+  userId: string,
+  otherUserId: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from("messages")
+    .update({ is_read: true })
+    .eq("recipient_id", userId)
+    .eq("sender_id", otherUserId)
+    .eq("is_read", false);
+  if (error) throw error;
+}
+
+export async function getUnreadMessageCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from("messages")
+    .select("*", { count: "exact", head: true })
+    .eq("recipient_id", userId)
+    .eq("is_read", false);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 /* ─── Friends ─── */
 
 export async function searchUsers(query: string): Promise<SearchUserResult[]> {
@@ -776,6 +900,16 @@ export async function declineFriendRequest(requestId: string): Promise<void> {
     .update({ status: "declined" })
     .eq("id", requestId);
   if (error) throw error;
+}
+
+export async function getUserPublications(userId: string): Promise<Publication[]> {
+  const { data, error } = await supabase
+    .from("publications")
+    .select("*, user:user_id(id, nickname, avatar_emoji, bio, level, xp)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as Publication[];
 }
 
 export async function getMyFriends(userId: string): Promise<Friendship[]> {

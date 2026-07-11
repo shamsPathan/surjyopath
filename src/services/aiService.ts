@@ -125,6 +125,7 @@ export async function processGoal(
   goalId: string,
   title: string,
   description: string,
+  direction?: string | null,
 ): Promise<AiServiceResult<GoalCourseResponse>> {
   const blockReason = canKnock("goal");
   if (blockReason) {
@@ -136,20 +137,24 @@ export async function processGoal(
   try {
     setProcessing({ progress: 20, message: "Generating course structure…" });
 
-    // 1. Try Edge Function
-    const edgeResult = await tryEdgeFunction<{ modules: GoalCourseResponse["modules"] }>("goal", {
+    // 1. Try Edge Function — passes direction for pattern matching
+    const edgeResult = await tryEdgeFunction<GoalCourseResponse>("goal", {
       content: description,
       title,
+      direction,
     });
 
     if (edgeResult.success && edgeResult.data) {
       const course: GoalCourseResponse = {
         goalId,
         modules: edgeResult.data.modules,
+        fromCache: edgeResult.data.fromCache ?? false,
+        tags: edgeResult.data.tags,
       };
+      const cacheMsg = course.fromCache ? " (loaded from cache)" : "";
       recordKnock("goal");
-      setProcessing({ isProcessing: false, currentType: null, progress: 100, message: "Course ready!" });
-      return { success: true, data: course, source: "edge-function" };
+      setProcessing({ isProcessing: false, currentType: null, progress: 100, message: `Course ready${cacheMsg}!` });
+      return { success: true, data: course, source: "edge-function", fromCache: course.fromCache };
     }
 
     setProcessing({ progress: 40, message: "Running local course generation…" });
@@ -232,7 +237,7 @@ export async function knockPolish(
 
 async function tryEdgeFunction<T>(
   type: "thought" | "goal" | "polish",
-  params: { content: string; title?: string },
+  params: { content: string; title?: string; direction?: string | null },
 ): Promise<AiServiceResult<T>> {
   try {
     const controller = new AbortController();
@@ -243,6 +248,7 @@ async function tryEdgeFunction<T>(
         type,
         content: params.content,
         title: params.title,
+        direction: params.direction,
       },
       signal: controller.signal,
     });

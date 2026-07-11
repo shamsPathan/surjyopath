@@ -92,6 +92,15 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
           {publication.excerpt}
         </p>
 
+        {/* Category badge */}
+        {publication.category && (
+          <div className="mb-2.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-primary/10 text-primary">
+              {publication.category}
+            </span>
+          </div>
+        )}
+
         {/* Tags */}
         {publication.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">

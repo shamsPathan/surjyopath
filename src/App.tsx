@@ -14,6 +14,7 @@ import LibraryPage from "./pages/LibraryPage";
 import PublicationsPage from "./pages/PublicationsPage";
 import ArticleView from "./pages/ArticleView";
 import FriendsPage from "./pages/FriendsPage";
+import FriendProfilePage from "./pages/FriendProfilePage";
 import ProfilePage from "./pages/ProfilePage";
 import HomePage from "./pages/HomePage";
 import GalaxyPage from "./pages/GalaxyPage";
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/publications" element={<PublicationsPage />} />
         <Route path="/publications/:id" element={<ArticleView />} />
         <Route path="/friends" element={<ProtectedRoute><FriendsPage /></ProtectedRoute>} />
+        <Route path="/friends/:id" element={<ProtectedRoute><FriendProfilePage /></ProtectedRoute>} />
         <Route
           path="/profile"
           element={<ProtectedRoute><ProfilePage /></ProtectedRoute>}

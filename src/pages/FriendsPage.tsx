@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Users,
   Search,
@@ -13,6 +14,7 @@ import {
   Mail,
   MailOpen,
   UserMinus,
+  MessageCircle,
   Sparkles,
 } from "lucide-react";
 import { useFriendStore } from "../store/useFriendStore";
@@ -78,6 +80,7 @@ function FriendCard({
   friendship: Friendship;
   onRemove: (friendId: string) => void;
 }) {
+  const navigate = useNavigate();
   const [removing, setRemoving] = useState(false);
   const friend = friendship.friend;
 
@@ -89,11 +92,23 @@ function FriendCard({
     setRemoving(false);
   };
 
+  const handleViewProfile = () => {
+    navigate(`/friends/${friend.id}`);
+  };
+
+  const handleMessage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/friends/${friend.id}?openChat=true`);
+  };
+
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-surface border border-border hover:border-primary/20 transition-all duration-200 group">
+    <div
+      onClick={handleViewProfile}
+      className="flex items-center gap-3 px-4 py-3 rounded-lg bg-surface border border-border hover:border-primary/20 hover:bg-surface-hover transition-all duration-200 group cursor-pointer active:scale-[0.99]"
+    >
       <span className="text-xl flex-shrink-0">{friend.avatar_emoji}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">
+        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors duration-150">
           {friend.nickname}
         </p>
         {friend.bio && (
@@ -104,7 +119,18 @@ function FriendCard({
         </p>
       </div>
       <button
-        onClick={handleRemove}
+        onClick={handleMessage}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-all duration-150 active:scale-95"
+        aria-label={`Message ${friend.nickname}`}
+      >
+        <MessageCircle size={14} />
+        <span className="hidden sm:inline">Message</span>
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleRemove();
+        }}
         disabled={removing}
         className="opacity-0 group-hover:opacity-100 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-destructive text-xs font-medium hover:bg-destructive/10 transition-all duration-200 active:scale-95 disabled:opacity-30"
         aria-label={`Remove ${friend.nickname} as friend`}

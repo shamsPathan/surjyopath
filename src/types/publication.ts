@@ -12,6 +12,9 @@ export interface Publication {
   excerpt: string;           /* Short preview — first ~120 chars of content */
   tags: string[];
 
+  /* AI-chosen category for organization */
+  category: string;
+
   /* AI Polish */
   polished_content?: string;  /* AI-polished version (if polished) */
   is_polished: boolean;        /* Whether AI polish was applied */

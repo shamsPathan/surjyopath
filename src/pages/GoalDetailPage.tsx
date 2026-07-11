@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Target, BookOpen, Brain, CheckCircle2, Circle,
+  ArrowLeft, Target, BookOpen, Brain, Check, CheckCircle2, Circle,
   ChevronDown, ChevronRight, FileText, Calendar, Sparkles,
 } from "lucide-react";
 import type { CompassDirection } from "../types/goal";
@@ -38,6 +38,13 @@ export default function GoalDetailPage() {
 
   /* ─── Expanded modules ─── */
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
+
+  /* ─── Completed modules (passed quizzes) ─── */
+  const [completedModules, setCompletedModules] = useState<Set<number>>(new Set());
+
+  const handleModulePass = (mi: number) => {
+    setCompletedModules((prev) => new Set(prev).add(mi));
+  };
 
   if (!goal) {
     return (
@@ -237,7 +244,11 @@ export default function GoalDetailPage() {
               return (
                 <div
                   key={mi}
-                  className="rounded-xl border border-border bg-surface overflow-hidden shadow-sm transition-all duration-200"
+                  className={`rounded-xl border overflow-hidden shadow-sm transition-all duration-200 ${
+                    completedModules.has(mi)
+                      ? "border-emerald-500/20 bg-emerald-500/[0.03]"
+                      : "border-border bg-surface"
+                  }`}
                 >
                   {/* Module header */}
                   <button
@@ -246,11 +257,18 @@ export default function GoalDetailPage() {
                     aria-expanded={isExpanded}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent/60 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                        {mi + 1}
+                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0 ${
+                        completedModules.has(mi)
+                          ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                          : "bg-gradient-to-br from-primary to-accent/60"
+                      }`}>
+                        {completedModules.has(mi) ? <Check size={14} /> : mi + 1}
                       </span>
                       <div className="min-w-0">
-                        <h3 className="text-sm font-semibold text-foreground">{mod.title}</h3>
+                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                          {mod.title}
+                          {completedModules.has(mi) && <Check size={12} className="text-emerald-500 shrink-0" />}
+                        </h3>
                         {mod.description && (
                           <p className="text-xs text-muted mt-0.5 line-clamp-1">{mod.description}</p>
                         )}
@@ -316,11 +334,22 @@ export default function GoalDetailPage() {
                       {/* Topic test */}
                       {mod.topicTest && (
                         <div className="pt-1">
-                          {activeQuiz ? (
+                          {completedModules.has(mi) ? (
+                            <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
+                              <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+                              <div className="text-left">
+                                <span className="text-sm font-medium text-emerald-300/90">Test Passed</span>
+                                <span className="text-xs text-emerald-400/60 block mt-0.5">
+                                  You answered all questions correctly
+                                </span>
+                              </div>
+                            </div>
+                          ) : activeQuiz ? (
                             <TopicTestQuiz
                               title={activeQuiz.title}
                               questions={activeQuiz.questions}
                               onClose={() => setActiveQuiz(null)}
+                              onPass={() => handleModulePass(mi)}
                             />
                           ) : (
                             <button
