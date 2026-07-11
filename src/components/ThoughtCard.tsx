@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { Thought } from "../types/thought";
 import { useJournalStore } from "../store/useJournalStore";
+import { usePublicationStore } from "../store/usePublicationStore";
 
 /* ─── Tag colour mapping ─── */
 
@@ -175,18 +176,38 @@ function AnalysisSection({ thought }: { thought: Thought }) {
             <p className="text-sm text-foreground/80 leading-relaxed">{analysis.summary}</p>
           </div>
 
-          {/* Was Right? */}
-          {analysis.wasRight !== null && (
+          {/* Click moment — a small story or reframe tailored to the thought's flaw */}
+          {analysis.clickMoment && (
+            <div className="p-3 rounded-lg bg-surface-hover border border-primary/10 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.03] to-transparent pointer-events-none" />
+              <div className="flex gap-2.5 relative z-10">
+                <div className="shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                  <span className="text-xs leading-none">💡</span>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-primary mb-1">A thought to sit with</p>
+                  <p className="text-sm text-foreground/75 leading-relaxed italic">{analysis.clickMoment}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Publish eligibility indicator */}
+          {analysis.publishEligibility !== null && (
             <div className="flex gap-2.5">
-              {analysis.wasRight ? (
+              {analysis.publishEligibility === "high" ? (
                 <CheckCircle2 size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+              ) : analysis.publishEligibility === "medium" ? (
+                <Lightbulb size={14} className="text-primary shrink-0 mt-0.5" />
               ) : (
                 <AlertTriangle size={14} className="text-amber-400 shrink-0 mt-0.5" />
               )}
               <p className="text-sm text-foreground/80">
-                {analysis.wasRight
-                  ? "Your reasoning appears sound and grounded."
-                  : "There may be room to reconsider this perspective."}
+                {analysis.publishEligibility === "high"
+                  ? "This thought has real depth — it reads well and could resonate with others."
+                  : analysis.publishEligibility === "medium"
+                    ? "This reflection has good bones but could use more detail before it shines. Try expanding on what you felt and why — that personal lens is what makes it worth sharing."
+                    : "This entry is too brief or surface-level to publish as-is. Add your personal experience, context, or what led you here to give it substance."}
               </p>
             </div>
           )}
@@ -236,16 +257,34 @@ function AnalysisSection({ thought }: { thought: Thought }) {
             </div>
           )}
 
-          {/* Suggested reading */}
-          {analysis.suggestedReading.length > 0 && (
+          {/* Suggested reading with reasons */}
+          {analysis.bookSuggestions && analysis.bookSuggestions.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-primary flex items-center gap-1.5">
                 <BookOpen size={12} /> Suggested reading
               </p>
-              <ul className="space-y-1">
-                {analysis.suggestedReading.map((book, i) => (
+              <ul className="space-y-2">
+                {analysis.bookSuggestions.map((suggestion, i) => (
                   <li key={i} className="text-sm text-foreground/70 pl-4 relative before:content-['📖'] before:absolute before:left-0 before:text-xs">
-                    {book}
+                    <span className="font-medium text-foreground/80">{suggestion.book}</span>
+                    <br />
+                    <span className="text-xs text-muted">{suggestion.reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Known unknowns — what the analysis identified as missing context */}
+          {analysis.knownUnknowns.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted flex items-center gap-1.5">
+                <MessageSquareQuote size={12} /> Known unknowns
+              </p>
+              <ul className="space-y-1">
+                {analysis.knownUnknowns.map((unk, i) => (
+                  <li key={i} className="text-sm text-muted pl-4 relative before:content-['?'] before:absolute before:left-0 before:text-xs before:font-bold before:text-primary/60">
+                    {unk}
                   </li>
                 ))}
               </ul>
@@ -296,7 +335,8 @@ export default function ThoughtCard({
 
   const knockingThoughtId = useJournalStore((s) => s.knockingThoughtId);
   const knockThought = useJournalStore((s) => s.knockThought);
-  const publishThought = useJournalStore((s) => s.publishThought);
+  const updateThought = useJournalStore((s) => s.updateThought);
+  const publishFromThought = usePublicationStore((s) => s.publishFromThought);
 
   const isKnocking = knockingThoughtId === thought.id;
 
@@ -327,7 +367,11 @@ export default function ThoughtCard({
   };
 
   const handlePublish = () => {
-    publishThought(thought.id);
+    // Create a publication from this thought, then mark it as published
+    const pub = publishFromThought(thought);
+    if (pub) {
+      updateThought(thought.id, { is_published: true });
+    }
   };
 
   // Determine button state
@@ -450,15 +494,31 @@ export default function ThoughtCard({
               </span>
             )}
 
-            {/* Publish button (only when AI analysis is ready and not yet published) */}
-            {aiReady && !thought.is_published && (
+            {/* Publish button (only for high eligibility) */}
+            {aiReady && !thought.is_published && thought.analysis?.publishEligibility === "high" && (
               <button
                 onClick={handlePublish}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 text-primary hover:bg-primary/25 transition-all duration-150 active:scale-95"
               >
                 <Send size={12} />
-                Publish
+                Review to Publish
               </button>
+            )}
+
+            {/* Publish eligibility: Low — too brief or shallow */}
+            {aiReady && !thought.is_published && thought.analysis?.publishEligibility === "low" && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/15 text-amber-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                Still forming
+              </span>
+            )}
+
+            {/* Publish eligibility: Medium — some substance, needs more */}
+            {aiReady && !thought.is_published && thought.analysis?.publishEligibility === "medium" && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/15 text-primary">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                Gathering light
+              </span>
             )}
 
             {/* Knock AI button */}

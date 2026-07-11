@@ -26,14 +26,25 @@ export interface Thought {
   updated_at: string;
 }
 
+export type PublishEligibility = "low" | "medium" | "high";
+
+export interface BookSuggestion {
+  book: string;
+  reason: string;
+}
+
 export interface ThoughtAnalysis {
   summary: string;
   wasRight: boolean | null;
+  publishEligibility: PublishEligibility;
+  clickMoment: string | null;
   improvements: string[];
   hiddenQuestions: { question: string; answer: string }[];
   isMisleading: boolean;
   misleadingReason: string | null;
   suggestedReading: string[];
+  bookSuggestions: BookSuggestion[];
+  knownUnknowns: string[];
   suggestions: string[];
 }
 

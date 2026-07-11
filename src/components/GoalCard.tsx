@@ -1,8 +1,9 @@
 import {
   CheckCircle2, Circle, Trash2, Target, Calendar,
-  TrendingUp, Sparkles, Mountain, Sunset,
+  TrendingUp, Sparkles, Mountain, Sunset, BookOpen,
 } from "lucide-react";
 import type { Goal, CompassDirection } from "../types/goal";
+import { useGoalStore } from "../store/useGoalStore";
 
 /* ── compass direction icon / label mapping ── */
 const COMPASS_META: Record<CompassDirection, { icon: typeof TrendingUp; label: string; colorClass: string }> = {
@@ -185,6 +186,22 @@ export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps
           ))}
         </div>
       )}
+
+      {/* AI Course generation */}
+      {goal.aiCourseStatus === "generating" ? (
+        <div className="mt-4 flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg bg-primary/5 border border-primary/10">
+          <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <span className="text-xs font-medium text-primary/70">Knock AI is building your learning path…</span>
+        </div>
+      ) : !goal.course || goal.course.length === 0 ? (
+        <button
+          onClick={() => useGoalStore.getState().generateCourse(goal.id)}
+          className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-medium border border-dashed border-primary/20 text-primary/60 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 active:scale-[0.97] cursor-pointer"
+        >
+          <BookOpen size={14} />
+          Generate AI learning path
+        </button>
+      ) : null}
     </div>
   );
 }

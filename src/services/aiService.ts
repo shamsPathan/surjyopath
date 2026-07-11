@@ -262,8 +262,6 @@ async function tryEdgeFunction<T>(
         type,
         content: params.content,
         title: params.title,
-        // Pass the frontend's Fireworks API key so the Edge Function can use it
-        apiKey: CONFIG.fireworks.apiKey || undefined,
       },
     });
 

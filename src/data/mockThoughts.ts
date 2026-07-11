@@ -34,6 +34,8 @@ const analysisForMorning: Thought["analysis"] = {
   summary:
     "This reflection shows a healthy appreciation for stillness and routine. The insight about setting a calm tone for the day is grounded in well-established mindfulness practices.",
   wasRight: true,
+  publishEligibility: "high",
+  clickMoment: null,
   improvements: [
     "Consider framing this as a recurring commitment rather than a one-off observation",
     "Add a specific trigger (e.g. 'after I pour my coffee') to solidify the habit",
@@ -46,6 +48,20 @@ const analysisForMorning: Thought["analysis"] = {
   ],
   isMisleading: false,
   misleadingReason: null,
+  bookSuggestions: [
+    {
+      book: "Atomic Habits by James Clear — habit stacking and environment design",
+      reason: "Your thought already shows an intuitive grasp of habit building. Clear's book will deepen that intuition with a practical framework.",
+    },
+    {
+      book: "The Power of Habit by Charles Duhigg — the cue-routine-reward loop",
+      reason: "You identified a habit you want to build — Duhigg explains the psychology behind why some habits stick and others don't.",
+    },
+  ],
+  knownUnknowns: [
+    "What time exactly did you wake up? The specific detail could help you recreate this moment.",
+    "Is there a reason this is a 'should do' rather than something you've already committed to?",
+  ],
   suggestedReading: [
     "Atomic Habits by James Clear — habit stacking and environment design",
     "The Power of Habit by Charles Duhigg — the cue-routine-reward loop",
@@ -60,6 +76,8 @@ const analysisForPatience: Thought["analysis"] = {
   summary:
     "This is a moment of honest self-reflection that recognizes a gap between your values and your reactions. That awareness is the critical first step toward change.",
   wasRight: true,
+  publishEligibility: "medium",
+  clickMoment: "A man once shouted at the sea during a storm, furious that the waves kept crashing over his boat. The sea did not answer. But when the storm passed, he realised the waves had carried him to a shore he never knew existed. Your frustration with impatience is that storm — it feels like a failure now, but it might be showing you exactly where you need to grow. Ask: 'What is this moment trying to teach me about myself?'",
   improvements: [
     "Practice the '6-second rule' — take six seconds before responding in a tense moment",
     "Prepare a script for when you feel frustration rising ('I need a moment to think about that')",
@@ -76,6 +94,20 @@ const analysisForPatience: Thought["analysis"] = {
   ],
   isMisleading: false,
   misleadingReason: null,
+  bookSuggestions: [
+    {
+      book: "Emotional Intelligence by Daniel Goleman",
+      reason: "Your personal experience with snapping at a colleague shows you're already self-aware — Goleman's framework will help you take that awareness into the split-second before you react.",
+    },
+    {
+      book: "Nonviolent Communication by Marshall Rosenberg",
+      reason: "You identified the gap between your values and your actions. Rosenberg's method gives you the actual language to express frustration without blame.",
+    },
+  ],
+  knownUnknowns: [
+    "What was the specific trigger for your frustration? The detail matters for pattern recognition.",
+    "Was there something else weighing on you before the interaction?",
+  ],
   suggestedReading: [
     "Emotional Intelligence by Daniel Goleman — understanding and managing triggers",
     "Nonviolent Communication by Marshall Rosenberg — speaking with empathy",

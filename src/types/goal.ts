@@ -30,6 +30,10 @@ export interface Goal {
   /* Status */
   status: "active" | "completed" | "abandoned";
 
+  /* AI-enriched course (from Knock Engine) */
+  course: GoalCourseModule[] | null;
+  aiCourseStatus: "idle" | "generating" | "ready" | "failed";
+
   /* Drift tracking */
   last_touched_step_at: string | null;   /* ISO — when a step was last toggled */
 
@@ -37,6 +41,29 @@ export interface Goal {
   user_id: string;
   created_at: string;
   updated_at: string;
+}
+
+/** A module in the AI-generated course structure */
+export interface GoalCourseModule {
+  title: string;
+  description: string;
+  books: {
+    title: string;
+    author: string;
+    description: string;
+    chapters: {
+      title: string;
+      content: string;
+    }[];
+  }[];
+  topicTest?: {
+    title: string;
+    questions: {
+      question: string;
+      options: string[];
+      correctIndex: number;
+    }[];
+  };
 }
 
 export interface GoalStep {

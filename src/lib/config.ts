@@ -7,11 +7,6 @@ export const CONFIG = {
   goBackend: {
     url: import.meta.env.VITE_GO_BACKEND_URL || "http://localhost:8080",
   },
-  fireworks: {
-    apiKey: import.meta.env.VITE_FIREWORKS_API_KEY || "",
-    baseUrl: "https://api.fireworks.ai/inference/v1/chat/completions",
-    model: "accounts/fireworks/models/llama-v3p3-70b-instruct",
-  },
   app: {
     name: "SurjyoPath",
     tagline: "The Sun's Way",

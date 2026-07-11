@@ -33,13 +33,22 @@ interface KnockRequest {
 
 /* ─── Response types ─── */
 
+interface BookSuggestion {
+  book: string;
+  reason: string;
+}
+
 interface ThoughtAnalysis {
   summary: string;
   wasRight: boolean | null;
+  publishEligibility: "low" | "medium" | "high";
+  clickMoment: string | null;
   improvements: string[];
   hiddenQuestions: { question: string; answer: string }[];
   isMisleading: boolean;
   misleadingReason: string | null;
+  bookSuggestions: BookSuggestion[];
+  knownUnknowns: string[];
   suggestedReading: string[];
   suggestions: string[];
 }
@@ -78,12 +87,18 @@ Return a JSON object with these exact fields:
 {
   "summary": "A short, warm 1-2 sentence summary of their thought",
   "wasRight": true/false/null (null if the thought is questioning/uncertain, true if the reasoning seems sound, false if there's a clear logical flaw),
+  "publishEligibility": "low" | "medium" | "high" (how ready is this thought to be shared? low = needs more reflection, medium = has good bones, high = ready to publish),
+  "clickMoment": null or a short, story-like reframe (2-4 sentences) tailored to the specific flaw detected — a metaphor, anecdote, or analogy that creates an "aha" realisation for the user about what they're missing. Make it memorable and human. Use null if eligibility is "high" since the thought is already strong.
   "improvements": ["array of 2-4 actionable suggestions to deepen or clarify this thought"],
   "hiddenQuestions": [
     {"question": "A probing question the thought raises but doesn't answer", "answer": "A thoughtful, compassionate exploration of that question"}
   ],
   "isMisleading": true/false (true if the thought contains absolute language like 'always'/'never', cognitive distortions, or factual errors),
   "misleadingReason": null or a brief explanation of what's misleading,
+  "bookSuggestions": [
+    {"book": "Book Title by Author", "reason": "Why this specific book helps with the specific flaw or gap detected in this thought — be personal and concrete, not generic"}
+  ],
+  "knownUnknowns": ["array of 2-4 things the thought leaves out — missing context, causality, personal perspective, or unasked questions"],
   "suggestedReading": ["2-3 book or article recommendations that relate to the themes in this thought"],
   "suggestions": ["2-3 practical next steps they could take based on this insight"]
 }
@@ -206,12 +221,45 @@ async function callFireworks(
 function mockAnalyseThought(content: string, title?: string): ThoughtAnalysis {
   const lower = content.toLowerCase();
   const hasAbsolutes = ["always", "never", "everyone", "no one", "nobody"].some((w) => lower.includes(w));
+  const hasDepth = ["because", "realise", "realize", "i feel", "i learned", "i notice",
+    "i wonder", "in my experience", "what if", "i realised", "i realized"].some((m) => lower.includes(m));
+  const wordCount = content.split(/\s+/).length;
+
+  const eligibility: ThoughtAnalysis["publishEligibility"] =
+    hasDepth && wordCount >= 25 && !hasAbsolutes
+      ? "high"
+      : hasDepth && wordCount >= 15
+        ? "medium"
+        : "low";
+
+  const knownUnknowns: string[] = [];
+  if (!lower.includes("because") && !lower.includes("why")) {
+    knownUnknowns.push("What caused this moment or feeling? The 'why' is missing.");
+  }
+  if (!content.includes("?")) {
+    knownUnknowns.push("No question is asked — what would you want to understand better about this?");
+  }
+  if (!lower.includes("i") && !lower.includes("my") && !lower.includes("me")) {
+    knownUnknowns.push("This reads impersonally — where are *you* in this thought?");
+  }
+  if (wordCount < 12) {
+    knownUnknowns.push("The thought is too brief to know what context surrounds it.");
+  }
+  if (knownUnknowns.length === 0) {
+    knownUnknowns.push("The personal context is clear, but would someone else follow your chain of thought?");
+  }
 
   return {
     summary: title
       ? `A thoughtful reflection on "${title}". There's genuine self-awareness here worth building upon.`
       : "A sincere personal reflection that shows introspection and a desire for clarity.",
     wasRight: lower.includes("?") || lower.includes("maybe") ? null : !lower.includes("bad") && !lower.includes("wrong"),
+    publishEligibility: eligibility,
+    clickMoment: eligibility === "low"
+      ? "Imagine a photographer who declares 'this forest has no beauty' after visiting on a single foggy morning. A week later, she returns at golden hour and sees light streaming through the leaves. The forest didn't change — her moment of seeing did. Your thought needs a different light. Try writing it again from a moment when you felt differently."
+      : eligibility === "medium"
+        ? "A gardener doesn't pull a sprout to make it grow faster — they water it, give it light, and wait. Your thought is that sprout. It doesn't need a rewrite, just one more sentence that feeds it. What happened right before this thought came to you?"
+        : null,
     improvements: [
       "Try distilling the core insight into one sentence",
       "Consider what you'd tell a friend in this situation",
@@ -227,6 +275,13 @@ function mockAnalyseThought(content: string, title?: string): ThoughtAnalysis {
     misleadingReason: hasAbsolutes
       ? "Using absolute language like 'always' or 'never' can oversimplify complex situations."
       : null,
+    bookSuggestions: [
+      {
+        book: "Atomic Habits by James Clear",
+        reason: "Building a consistent reflection practice starts with small daily habits — Clear's framework helps you make this stick.",
+      },
+    ],
+    knownUnknowns,
     suggestedReading: [
       "Atomic Habits by James Clear",
       "The Art of Thinking Clearly by Rolf Dobelli",

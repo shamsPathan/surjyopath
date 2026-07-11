@@ -52,7 +52,13 @@ async function goFetch<T>(
 /* ─── Auth ─── */
 
 export async function signUp(email: string, password: string, nickname: string) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: `${window.location.origin}/auth`,
+    },
+  });
   if (error) throw error;
 
   // Create user profile in the database
