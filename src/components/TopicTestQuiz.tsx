@@ -66,12 +66,12 @@ export default function TopicTestQuiz({ title, questions, onClose, onPass }: Top
           </div>
           <div>
             <h3 className="text-base font-heading font-semibold text-foreground">{title}</h3>
-            <p className="text-xs text-muted mt-0.5">
+            <p className="text-xs text-foreground/55 mt-0.5">
               {questions.length} question{questions.length > 1 ? "s" : ""} &middot; Test your understanding
             </p>
           </div>
         </div>
-        <p className="text-sm text-muted leading-relaxed mb-4">
+        <p className="text-sm text-foreground/65 leading-relaxed mb-4">
           Ready to test what you've learned? Answer all questions to see your score.
           You can retake the quiz anytime.
         </p>
@@ -105,7 +105,7 @@ export default function TopicTestQuiz({ title, questions, onClose, onPass }: Top
         <h3 className="text-lg font-heading font-semibold text-foreground mb-1">
           {passed ? "Well done!" : "Keep learning"}
         </h3>
-        <p className="text-sm text-muted mb-4">
+        <p className="text-sm text-foreground/65 mb-4">
           You scored <span className="text-foreground font-semibold">{score}</span> out of{" "}
           <span className="text-foreground font-semibold">{questions.length}</span> (
           <span className="text-foreground font-semibold">{percentage}%</span>)
@@ -151,7 +151,7 @@ export default function TopicTestQuiz({ title, questions, onClose, onPass }: Top
                 <div>
                   <p className="text-xs text-foreground">{q.question}</p>
                   {!isCorrect && (
-                    <p className="text-[11px] text-muted mt-0.5">
+                    <p className="text-[11px] text-foreground/55 mt-0.5">
                       Correct answer: <span className="text-emerald-400">{q.options[q.correctIndex]}</span>
                     </p>
                   )}
@@ -191,12 +191,12 @@ export default function TopicTestQuiz({ title, questions, onClose, onPass }: Top
               if (currentIndex > 0) setCurrentIndex(currentIndex - 1);
             }}
             disabled={currentIndex === 0}
-            className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-surface-active disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150 cursor-pointer"
+            className="p-1.5 rounded-lg text-foreground/55 hover:text-foreground hover:bg-surface-active disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-150 cursor-pointer"
             aria-label="Previous question"
           >
             <ArrowLeft size={16} />
           </button>
-          <span className="text-xs font-medium text-muted">
+          <span className="text-xs font-medium text-foreground/55">
             {currentIndex + 1} / {questions.length}
           </span>
         </div>
@@ -235,12 +235,12 @@ export default function TopicTestQuiz({ title, questions, onClose, onPass }: Top
                 disabled={submitted}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm text-left transition-all duration-150 cursor-pointer ${
                   showCorrect
-                    ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
+                    ? "bg-emerald-500/10 border border-emerald-500/30 text-tag-green"
                     : showWrong
-                      ? "bg-rose-500/10 border border-rose-500/30 text-rose-300"
+                      ? "bg-rose-500/10 border border-rose-500/30 text-tag-rose"
                       : selected
                         ? "bg-primary/10 border border-primary/30 text-foreground"
-                        : "bg-surface-active/50 border border-border/50 text-muted hover:border-border hover:text-foreground"
+                        : "bg-surface-active/50 border border-border/50 text-foreground/65 hover:border-border hover:text-foreground"
                 } ${submitted ? "cursor-default" : ""}`}
                 role="radio"
                 aria-checked={selected}
@@ -271,7 +271,7 @@ export default function TopicTestQuiz({ title, questions, onClose, onPass }: Top
 
       {/* Navigation / Submit */}
       <div className="flex items-center justify-between pt-2 border-t border-border/40">
-        <span className="text-[11px] text-muted">
+        <span className="text-[11px] text-foreground/55">
           {isComplete
             ? "All questions answered"
             : `${answers.filter((a) => a !== null).length} of ${questions.length} answered`}

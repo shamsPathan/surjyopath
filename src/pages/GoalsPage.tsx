@@ -7,10 +7,10 @@ import type { CompassDirection } from "../types/goal";
 import GoalCard from "../components/GoalCard";
 
 const COMPASS_OPTIONS: { value: CompassDirection; label: string; description: string; icon: typeof TrendingUp; colorClass: string }[] = [
-  { value: "growth",    label: "Growth",    description: "Expand skills, knowledge, or capability",  icon: TrendingUp,  colorClass: "border-amber-500/20 bg-amber-500/5 text-amber-400 hover:bg-amber-500/10" },
-  { value: "creation",  label: "Creation",  description: "Build, make, or bring something new",      icon: CreateIcon,  colorClass: "border-violet-500/20 bg-violet-500/5 text-violet-400 hover:bg-violet-500/10" },
-  { value: "grounding", label: "Grounding", description: "Find stability, health, or inner peace",  icon: Mountain,    colorClass: "border-emerald-500/20 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10" },
-  { value: "release",   label: "Release",   description: "Let go, heal, or break a pattern",        icon: Sunset,      colorClass: "border-rose-500/20 bg-rose-500/5 text-rose-400 hover:bg-rose-500/10" },
+  { value: "growth",    label: "Growth",    description: "Expand skills, knowledge, or capability",  icon: TrendingUp,  colorClass: "border-tag-amber/30 bg-tag-amber/10 text-tag-amber hover:bg-tag-amber/15" },
+  { value: "creation",  label: "Creation",  description: "Build, make, or bring something new",      icon: CreateIcon,  colorClass: "border-tag-violet/30 bg-tag-violet/10 text-tag-violet hover:bg-tag-violet/15" },
+  { value: "grounding", label: "Grounding", description: "Find stability, health, or inner peace",  icon: Mountain,    colorClass: "border-tag-green/30 bg-tag-green/10 text-tag-green hover:bg-tag-green/15" },
+  { value: "release",   label: "Release",   description: "Let go, heal, or break a pattern",        icon: Sunset,      colorClass: "border-tag-rose/30 bg-tag-rose/10 text-tag-rose hover:bg-tag-rose/15" },
 ];
 
 export default function GoalsPage() {
@@ -93,7 +93,7 @@ export default function GoalsPage() {
       {!isAuthenticated && !guestBannerDismissed && (
         <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-4 flex items-center justify-between gap-4 shadow-sm">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-sm shrink-0">
+            <div className="mt-0.5 w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-hover flex items-center justify-center shadow-sm shrink-0">
               <Sparkles size={16} className="text-white" />
             </div>
             <div>

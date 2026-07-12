@@ -239,7 +239,7 @@ function CentralSun() {
 function OrbitRing({ radius }: { radius: number }) {
   return (
     <div
-      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.03] pointer-events-none"
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.06] pointer-events-none"
       style={{ width: `${radius * 2}%`, height: `${radius * 2}%`, paddingTop: `${radius * 2}%` }}
     />
   );
@@ -318,7 +318,7 @@ function Planet({
           <p
             className="font-heading text-xs font-semibold text-center transition-all duration-300"
             style={{
-              color: isHovered ? `${body.color}` : "oklch(0.6 0.02 260)",
+              color: isHovered ? `${body.color}` : "oklch(0.7 0.02 270)",
               opacity: isHovered ? 1 : 0.5,
               transform: isHovered ? "scale(1.1)" : "scale(1)",
             }}
@@ -407,7 +407,7 @@ export default function GalaxyPage() {
           radial-gradient(ellipse 80% 60% at 50% 50%, oklch(0.62 0.13 50 / 0.04), transparent),
           radial-gradient(ellipse 60% 80% at 30% 60%, oklch(0.55 0.15 280 / 0.03), transparent),
           radial-gradient(ellipse 50% 50% at 70% 40%, oklch(0.55 0.10 70 / 0.02), transparent),
-          var(--color-bg)
+          oklch(0.13 0.025 260)
         `,
       }}
     >
@@ -418,7 +418,7 @@ export default function GalaxyPage() {
       {/* Entrance fade */ }
       <div
         className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-1000"
-        style={{ opacity: mounted ? 0 : 1, background: "var(--color-bg)" }}
+        style={{ opacity: mounted ? 0 : 1, background: "oklch(0.13 0.025 260)" }}
       />
 
       {/* Content */}

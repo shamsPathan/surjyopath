@@ -244,7 +244,7 @@ export default function GoalCourseSection({
                           {quizCompleted ? (
                             <div className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
                               <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                              <span className="text-xs text-emerald-300/80">
+                              <span className="text-xs text-tag-green">
                                 {mod.topicTest.title} &middot; Quiz completed
                               </span>
                             </div>
@@ -252,13 +252,13 @@ export default function GoalCourseSection({
                             <div className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Brain size={13} className="text-amber-400 shrink-0" />
-                                <span className="text-xs text-amber-300/80 truncate">
+                                <span className="text-xs text-tag-amber truncate">
                                   {mod.topicTest.title} &middot; {mod.topicTest.questions?.length ?? 0} questions
                                 </span>
                               </div>
                               <button
                                 onClick={() => setQuizModule(mi)}
-                                className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-all duration-150 active:scale-95 cursor-pointer"
+                                className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-lg bg-amber-500/20 text-tag-amber hover:bg-amber-500/30 transition-all duration-150 active:scale-95 cursor-pointer"
                               >
                                 Take Quiz
                               </button>

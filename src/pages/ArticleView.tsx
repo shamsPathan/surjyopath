@@ -151,7 +151,7 @@ function ArticleDetail({ publication, onBack, isOwner, isAuthenticated }: { publ
       <div className="mb-10">
         {publication.is_polished && (
           <div className="flex items-center gap-2 mb-4">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-amber-300 border border-amber-500/20">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-tag-amber/20 to-tag-rose/20 text-tag-amber border border-tag-amber/20">
               <Sparkles size={12} />
               Polished by AI
             </span>
@@ -166,7 +166,7 @@ function ArticleDetail({ publication, onBack, isOwner, isAuthenticated }: { publ
 
         {isPolishing ? (
           <div className="flex items-center gap-3 py-8 text-muted">
-            <Sparkles size={18} className="animate-pulse text-amber-400" />
+            <Sparkles size={18} className="animate-pulse text-tag-amber" />
             <span className="text-sm">Polishing your thoughts with AI&hellip;</span>
           </div>
         ) : (
@@ -197,7 +197,7 @@ function ArticleDetail({ publication, onBack, isOwner, isAuthenticated }: { publ
               <button
                 onClick={() => polishPublication(publication.id)}
                 disabled={isPolishing}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-amber-400 hover:bg-amber-500/10 transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted hover:text-tag-amber hover:bg-tag-amber/10 transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
                 aria-label="Polish with AI"
               >
                 <Sparkles size={14} className={isPolishing ? "animate-pulse" : ""} />
