@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "../store/useAuthStore";
-import { Lightbulb, Mail, Lock, User, ArrowRight, Sparkles, ArrowLeft, KeyRound, CheckCircle } from "lucide-react";
-import { SiGoogle, SiFacebook } from "react-icons/si";
+import { Lightbulb, Mail, Lock, User, ArrowRight, Sun, ArrowLeft, KeyRound, CheckCircle } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
 
 type AuthMode = "signin" | "signup" | "forgot" | "reset";
 
@@ -75,7 +75,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleOAuthSignIn = async (provider: 'google' | 'facebook') => {
+  const handleOAuthSignIn = async (provider: 'google') => {
     clearError();
     await signInWithOAuth(provider);
   };
@@ -86,7 +86,7 @@ export default function AuthPage() {
         {/* Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <Sparkles className="w-8 h-8 text-primary" />
+            <Sun className="w-8 h-8 text-amber-400" />
           </div>
           <h1 className="text-2xl font-heading font-bold text-foreground">
             Suryopath
@@ -298,9 +298,9 @@ export default function AuthPage() {
 
               {/* Error banner */}
               {error && (
-                <div className="flex items-start gap-2 p-3 bg-error/10 border border-error/20 rounded-lg">
-                  <Lightbulb className="w-4 h-4 text-error shrink-0 mt-0.5" />
-                  <p className="text-xs text-error">{error}</p>
+                <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <Lightbulb className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                  <p className="text-xs text-destructive">{error}</p>
                 </div>
               )}
 
@@ -308,10 +308,10 @@ export default function AuthPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-on-primary rounded-lg text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-white rounded-lg text-sm font-medium hover:opacity-90 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
-                  <span className="w-4 h-4 border-2 border-on-primary/30 border-t-on-primary rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
                     {mode === "signin" && "Sign In"}
@@ -334,24 +334,15 @@ export default function AuthPage() {
                 <span className="h-px flex-1 bg-border" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex justify-center">
                 <button
                   type="button"
                   onClick={() => handleOAuthSignIn("google")}
                   disabled={isLoading}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-bg border border-border rounded-lg text-sm text-foreground font-medium hover:bg-muted/10 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center gap-2 py-2.5 px-6 bg-bg border border-border rounded-lg text-sm text-foreground font-medium hover:bg-muted/10 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <SiGoogle className="w-4 h-4" />
                   Google
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuthSignIn("facebook")}
-                  disabled={isLoading}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-bg border border-border rounded-lg text-sm text-foreground font-medium hover:bg-muted/10 active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <SiFacebook className="w-4 h-4" />
-                  Facebook
                 </button>
               </div>
             </>

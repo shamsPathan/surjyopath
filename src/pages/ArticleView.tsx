@@ -10,8 +10,10 @@ import {
   MessageCircle,
   Sparkles,
   Link as LinkIcon,
+  LogIn,
 } from "lucide-react";
 import { usePublicationStore } from "../store/usePublicationStore";
+import { useAuthStore } from "../store/useAuthStore";
 import type { Publication } from "../types/publication";
 
 /* ─── Tag colour mapping ─── */
@@ -55,7 +57,7 @@ function timeAgo(iso: string): string {
 }
 
 /* ─── Article Detail ─── */
-function ArticleDetail({ publication, onBack }: { publication: Publication; onBack: () => void }) {
+function ArticleDetail({ publication, onBack, isOwner, isAuthenticated }: { publication: Publication; onBack: () => void; isOwner: boolean; isAuthenticated: boolean }) {
   const toggleLike = usePublicationStore((s) => s.toggleLike);
   const unpublish = usePublicationStore((s) => s.unpublish);
   const deletePublication = usePublicationStore((s) => s.deletePublication);
@@ -92,7 +94,7 @@ function ArticleDetail({ publication, onBack }: { publication: Publication; onBa
   };
 
   return (
-    <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+    <div className="max-w-3xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
       {/* Back button */}
       <button
         onClick={onBack}
@@ -139,7 +141,7 @@ function ArticleDetail({ publication, onBack }: { publication: Publication; onBa
 
         {/* Author */}
         <p className="text-xs text-muted">
-          By <span className="font-medium text-foreground">You</span>
+          By <span className="font-medium text-foreground">{isOwner ? "You" : publication.author_name}</span>
         </p>
 
         <div className="mt-4 h-px bg-gradient-to-r from-primary/30 via-border to-transparent" />
@@ -191,7 +193,7 @@ function ArticleDetail({ publication, onBack }: { publication: Publication; onBa
               {publication.likes_count > 0 && publication.likes_count}
             </button>
 
-            {!publication.is_polished && (
+            {isOwner && !publication.is_polished && (
               <button
                 onClick={() => polishPublication(publication.id)}
                 disabled={isPolishing}
@@ -222,6 +224,17 @@ function ArticleDetail({ publication, onBack }: { publication: Publication; onBa
             </button>
           </div>
 
+          {!isAuthenticated && (
+            <Link
+              to="/auth"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-primary hover:bg-primary/10 border border-primary/20 transition-all duration-150 active:scale-95"
+            >
+              <LogIn size={14} />
+              Sign in to interact
+            </Link>
+          )}
+
+          {isOwner && (
           <div className="relative">
             <button
               onClick={() => setShowActions(!showActions)}
@@ -258,6 +271,7 @@ function ArticleDetail({ publication, onBack }: { publication: Publication; onBa
               </>
             )}
           </div>
+        )}
         </div>
       </div>
     </div>
@@ -269,22 +283,29 @@ export default function ArticleView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const publications = usePublicationStore((s) => s.publications);
+  const fetchPublicationById = usePublicationStore((s) => s.fetchPublicationById);
+  const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [notFound, setNotFound] = useState(false);
 
   const publication = publications.find((p) => p.id === id);
 
   useEffect(() => {
-    if (!publication) {
-      // Give store time to initialize before showing 404
-      const timer = setTimeout(() => setNotFound(true), 1000);
-      return () => clearTimeout(timer);
+    if (!publication && id) {
+      // Try fetching from the server before showing 404
+      fetchPublicationById(id).then((result) => {
+        if (!result) {
+          setTimeout(() => setNotFound(true), 1000);
+        }
+      });
     }
-  }, [publication]);
+  }, [publication, id, fetchPublicationById]);
 
   const handleBack = () => navigate("/publications");
+  const isOwner = user ? publication?.user_id === user.id : false;
 
   if (publication) {
-    return <ArticleDetail publication={publication} onBack={handleBack} />;
+    return <ArticleDetail publication={publication} onBack={handleBack} isOwner={isOwner} isAuthenticated={isAuthenticated} />;
   }
 
   if (notFound) {

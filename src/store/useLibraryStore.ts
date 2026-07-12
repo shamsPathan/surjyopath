@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { useAuthStore } from "./useAuthStore";
 import { useJournalStore } from "./useJournalStore";
-import type { Book, Chapter } from "../api/types";
+import type { Book, Chapter } from "../types/supabase";
 import * as api from "../api/client";
 
 interface BookWithProgress extends Book {

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { PenLine, FolderOpen, Newspaper, Sparkles, ArrowRight, Target, TrendingUp } from "lucide-react";
+import { PenLine, FolderOpen, Newspaper, Sun, ArrowRight, Target, TrendingUp } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useJournalStore } from "../store/useJournalStore";
 import { useGoalStore } from "../store/useGoalStore";
@@ -37,7 +37,7 @@ export default function HomePage() {
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent/60 flex items-center justify-center shadow-lg shadow-primary/10">
-            <Sparkles size={20} className="text-white" />
+            <Sun size={20} className="text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-heading font-bold text-foreground">

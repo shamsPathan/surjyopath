@@ -1,429 +1,188 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  ArrowLeft, Target, BookOpen, Brain, Check, CheckCircle2, Circle,
-  ChevronDown, ChevronRight, FileText, Calendar, Sparkles,
-} from "lucide-react";
-import type { CompassDirection } from "../types/goal";
+import { ArrowLeft, CheckCircle, Circle, Sparkles, Loader2 } from "lucide-react";
 import { useGoalStore } from "../store/useGoalStore";
-import TopicTestQuiz from "../components/TopicTestQuiz";
-import FloatReader from "../components/FloatReader";
-
-/* ─── Compass meta ─── */
-const COMPASS_META: Record<CompassDirection, { icon: typeof Target; label: string; colorClass: string }> = {
-  growth:    { icon: Target, label: "Growth",    colorClass: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-  creation:  { icon: Target, label: "Creation",  colorClass: "bg-violet-500/10 text-violet-400 border-violet-500/20" },
-  grounding: { icon: Target, label: "Grounding", colorClass: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  release:   { icon: Target, label: "Release",   colorClass: "bg-rose-500/10 text-rose-400 border-rose-500/20" },
-};
-
-function formatDate(iso: string): string {
-  if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-}
+import { computeAlignment } from "../types/goal";
+import { COMPASS_LABELS } from "../types/goal";
+import GoalCourseSection from "../components/GoalCourseSection";
 
 export default function GoalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { goals, toggleStep, generateCourse } = useGoalStore();
+  const { goals, toggleStep, processGoalWithAI, loading } = useGoalStore();
+
   const goal = goals.find((g) => g.id === id);
-
-  /* ─── Reading state ─── */
-  const [readerOpen, setReaderOpen] = useState(false);
-  const [readerBook, setReaderBook] = useState<{ title: string; chapters: { title: string; content: string }[] } | null>(null);
-  const [currentChapterIdx, setCurrentChapterIdx] = useState(0);
-
-  /* ─── Quiz state ─── */
-  const [activeQuiz, setActiveQuiz] = useState<{ title: string; questions: { question: string; options: string[]; correctIndex: number }[] } | null>(null);
-
-  /* ─── Expanded modules ─── */
-  const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
-
-  /* ─── Completed modules (passed quizzes) ─── */
-  const [completedModules, setCompletedModules] = useState<Set<number>>(new Set());
-
-  const handleModulePass = (mi: number) => {
-    setCompletedModules((prev) => new Set(prev).add(mi));
-  };
 
   if (!goal) {
     return (
-      <div className="max-w-3xl mx-auto py-16 text-center">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface border border-border flex items-center justify-center">
-          <Target size={28} className="text-muted" />
-        </div>
-        <h2 className="text-lg font-heading font-semibold text-foreground mb-1">Goal not found</h2>
-        <p className="text-sm text-muted mb-4">This goal doesn't exist or has been deleted.</p>
+      <div className="p-6 text-center">
+        <p className="text-muted">Goal not found.</p>
         <button
           onClick={() => navigate("/goals")}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-hover transition-all duration-150 active:scale-[0.97] cursor-pointer"
+          className="mt-4 text-sm text-primary hover:text-primary-hover transition-colors"
         >
-          <ArrowLeft size={16} />
-          Back to Goals
+          ← Back to goals
         </button>
       </div>
     );
   }
 
-  const isComplete = goal.progress === 100;
+  const alignment = computeAlignment(goal);
+  const compass = goal.direction ? COMPASS_LABELS[goal.direction] : null;
 
-  /* ─── Handlers ─── */
+  // Derive completed quizzes from steps: step-{mi+1} → module index mi
+  const completedQuizzes = new Set<number>();
+  if (goal.course) {
+    goal.course.forEach((_, mi) => {
+      const stepId = `step-${mi + 1}`;
+      const step = goal.steps.find((s) => s.id === stepId);
+      if (step?.completed) completedQuizzes.add(mi);
+    });
+  }
 
-  const toggleModule = (idx: number) => {
-    setExpandedModules((prev) => ({ ...prev, [idx]: !prev[idx] }));
-  };
-
-  const openReader = (book: { title: string; chapters: { title: string; content: string }[] }) => {
-    setReaderBook(book);
-    setCurrentChapterIdx(0);
-    setReaderOpen(true);
-  };
-
-  const closeReader = () => {
-    setReaderOpen(false);
-    setReaderBook(null);
-    setCurrentChapterIdx(0);
-  };
-
-  const navigateChapter = (chapterId: string) => {
-    const idx = readerBook?.chapters.findIndex((_, i) => `ch-${i}` === chapterId) ?? -1;
-    if (idx >= 0) setCurrentChapterIdx(idx);
-  };
-
-  const handleChapterRead = (_chapterId: string) => {
-    // Could track read progress here
+  const handleCompleteQuiz = (moduleIndex: number) => {
+    const stepId = `step-${moduleIndex + 1}`;
+    toggleStep(goal.id, stepId);
   };
 
   return (
-    <>
-      <div className="max-w-3xl mx-auto">
-        {/* ── Back button ── */}
-        <button
-          onClick={() => navigate("/goals")}
-          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-6 transition-all duration-150 cursor-pointer"
-        >
-          <ArrowLeft size={16} />
-          Back to Goals
-        </button>
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+      {/* Back button */}
+      <button
+        onClick={() => navigate("/goals")}
+        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to goals
+      </button>
 
-        {/* ── Goal Header ── */}
-        <div className="rounded-xl bg-surface border border-border p-6 shadow-sm mb-6">
-          <div className="flex items-start gap-4 mb-4">
-            <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-300 ${
-                isComplete
-                  ? "bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/20"
-                  : "bg-gradient-to-br from-primary to-accent/60 shadow-primary/10"
-              }`}
-            >
-              <Target size={22} className="text-white" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-xl md:text-2xl font-heading font-bold text-foreground">
+      {/* Goal header */}
+      <div className="space-y-3">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <span className="text-3xl">{goal.emoji}</span>
+            <div>
+              <h1 className="text-2xl font-heading font-semibold text-foreground">
                 {goal.title}
               </h1>
-              {goal.description && (
-                <p className="text-sm text-muted mt-1 leading-relaxed">{goal.description}</p>
+              {compass && (
+                <span className="inline-flex items-center gap-1 mt-1 text-xs font-medium text-muted bg-surface px-2 py-0.5 rounded-full">
+                  {compass.label}
+                </span>
               )}
             </div>
           </div>
 
-          {/* Badges row */}
-          <div className="flex items-center flex-wrap gap-2 mb-4">
-            {goal.direction && COMPASS_META[goal.direction] && (
-              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${COMPASS_META[goal.direction].colorClass}`}>
-                {COMPASS_META[goal.direction].label}
-              </span>
-            )}
-            {goal.target_date && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-active border border-border text-muted">
-                <Calendar size={12} />
-                {formatDate(goal.target_date)}
-              </span>
-            )}
-            {isComplete && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <CheckCircle2 size={12} />
-                Complete
-              </span>
-            )}
-            {goal.aiCourseStatus === "generating" && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">
-                <Sparkles size={12} className="animate-pulse" />
-                Generating course…
-              </span>
-            )}
+          {/* Alignment badge */}
+          <div className="flex flex-col items-center gap-0.5">
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
+                alignment >= 70
+                  ? "bg-primary/20 text-primary"
+                  : alignment >= 40
+                  ? "bg-tag-amber/20 text-tag-amber"
+                  : "bg-muted/20 text-muted"
+              }`}
+            >
+              {alignment}
+            </div>
+            <span className="text-[10px] text-muted uppercase tracking-wider">
+              Align
+            </span>
           </div>
-
-          {/* Progress */}
-          <div className="mb-2">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-medium text-muted">Progress</span>
-              <span className="text-xs font-semibold tabular-nums text-foreground">{goal.progress}%</span>
-            </div>
-            <div className="h-2.5 rounded-full bg-surface-active border border-border overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ease-out ${
-                  isComplete
-                    ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
-                    : "bg-gradient-to-r from-primary to-accent"
-                }`}
-                style={{ width: `${goal.progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Steps */}
-          {goal.steps.length > 0 && (
-            <div className="mt-5 pt-4 border-t border-border/40">
-              <h3 className="text-xs font-medium text-muted uppercase tracking-wide mb-3">Learning Path Steps</h3>
-              <div className="space-y-1.5">
-                {goal.steps.map((step, idx) => (
-                  <button
-                    key={step.id}
-                    onClick={() => toggleStep(goal.id, idx)}
-                    className={`w-full flex items-start gap-3 p-3 rounded-lg text-left transition-all duration-150 cursor-pointer ${
-                      step.completed
-                        ? "bg-emerald-500/5 border border-emerald-500/10"
-                        : "bg-surface-active/50 border border-transparent hover:bg-surface-active"
-                    }`}
-                  >
-                    <span className="mt-0.5 shrink-0">
-                      {step.completed ? (
-                        <CheckCircle2 size={18} className="text-emerald-400" />
-                      ) : (
-                        <Circle size={18} className="text-muted" />
-                      )}
-                    </span>
-                    <div className="min-w-0">
-                      <span className={`text-sm font-medium ${step.completed ? "text-muted line-through" : "text-foreground"}`}>
-                        {step.title}
-                      </span>
-                      {step.description && (
-                        <p className={`text-xs mt-0.5 leading-relaxed ${step.completed ? "text-muted/60" : "text-muted"}`}>
-                          {step.description}
-                        </p>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* ── AI Course ── */}
-        {goal.aiCourseStatus === "generating" && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/5 border border-primary/10 mb-6">
-            <div className="w-5 h-5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-            <span className="text-sm font-medium text-primary/70">Knock AI is building your learning path…</span>
+        <p className="text-sm text-muted leading-relaxed">{goal.description}</p>
+
+        {/* Progress bar */}
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted">
+            <span>Progress</span>
+            <span>{goal.progress}%</span>
           </div>
-        )}
-
-        {goal.aiCourseStatus === "failed" && (
-          <div className="rounded-xl bg-rose-500/5 border border-rose-500/10 p-4 mb-6">
-            <p className="text-sm text-rose-400/80 mb-2">AI generation didn't complete.</p>
-            <button
-              onClick={() => generateCourse(goal.id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all duration-150 active:scale-95 cursor-pointer"
-            >
-              Retry AI generation
-            </button>
+          <div className="h-1.5 bg-surface rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full transition-all duration-500"
+              style={{ width: `${goal.progress}%` }}
+            />
           </div>
-        )}
+        </div>
 
-        {goal.course && goal.course.length > 0 && goal.aiCourseStatus === "ready" && (
-          <div className="space-y-4 mb-6">
-            <h2 className="text-lg font-heading font-semibold text-foreground flex items-center gap-2">
-              <Brain size={20} className="text-primary" />
-              AI-Generated Course
-            </h2>
-
-            {goal.course.map((mod, mi) => {
-              const isExpanded = expandedModules[mi] ?? false;
-              return (
-                <div
-                  key={mi}
-                  className={`rounded-xl border overflow-hidden shadow-sm transition-all duration-200 ${
-                    completedModules.has(mi)
-                      ? "border-emerald-500/20 bg-emerald-500/[0.03]"
-                      : "border-border bg-surface"
-                  }`}
-                >
-                  {/* Module header */}
-                  <button
-                    onClick={() => toggleModule(mi)}
-                    className="w-full flex items-center justify-between p-4 text-left cursor-pointer hover:bg-surface-active/50 transition-all duration-150"
-                    aria-expanded={isExpanded}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0 ${
-                        completedModules.has(mi)
-                          ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
-                          : "bg-gradient-to-br from-primary to-accent/60"
-                      }`}>
-                        {completedModules.has(mi) ? <Check size={14} /> : mi + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                          {mod.title}
-                          {completedModules.has(mi) && <Check size={12} className="text-emerald-500 shrink-0" />}
-                        </h3>
-                        {mod.description && (
-                          <p className="text-xs text-muted mt-0.5 line-clamp-1">{mod.description}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <span className="text-[11px] text-muted">
-                        {mod.books?.length ?? 0} book{(mod.books?.length ?? 0) !== 1 ? "s" : ""}
-                      </span>
-                      {isExpanded ? <ChevronDown size={16} className="text-muted" /> : <ChevronRight size={16} className="text-muted" />}
-                    </div>
-                  </button>
-
-                  {/* Module content */}
-                  {isExpanded && (
-                    <div className="px-4 pb-4 space-y-3 border-t border-border/40 pt-3">
-                      {mod.description && (
-                        <p className="text-xs text-muted leading-relaxed">{mod.description}</p>
-                      )}
-
-                      {/* Books */}
-                      {mod.books && mod.books.length > 0 && (
-                        <div className="space-y-2">
-                          <h4 className="text-[11px] font-medium text-foreground/60 uppercase tracking-wide flex items-center gap-1.5">
-                            <BookOpen size={12} /> Books
-                          </h4>
-                          {mod.books.map((book, bi) => (
-                            <div
-                              key={bi}
-                              className="rounded-lg border border-border/50 bg-surface-active/30 p-3 transition-all duration-150 hover:border-primary/20"
-                            >
-                              <div className="flex items-start justify-between gap-3 mb-2">
-                                <div className="min-w-0">
-                                  <span className="text-sm font-medium text-foreground">{book.title}</span>
-                                  <span className="text-xs text-muted block mt-0.5">by {book.author}</span>
-                                </div>
-                                <button
-                                  onClick={() => openReader(book)}
-                                  className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-all duration-150 active:scale-95 cursor-pointer"
-                                >
-                                  <BookOpen size={12} />
-                                  Read
-                                </button>
-                              </div>
-                              {book.description && (
-                                <p className="text-xs text-muted leading-relaxed mb-2">{book.description}</p>
-                              )}
-                              <div className="flex flex-wrap gap-1.5">
-                                {book.chapters.map((ch, ci) => (
-                                  <span
-                                    key={ci}
-                                    className="text-[10px] px-1.5 py-0.5 rounded bg-surface border border-border/30 text-muted"
-                                  >
-                                    {ch.title}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Topic test */}
-                      {mod.topicTest && (
-                        <div className="pt-1">
-                          {completedModules.has(mi) ? (
-                            <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg bg-emerald-500/5 border border-emerald-500/15">
-                              <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
-                              <div className="text-left">
-                                <span className="text-sm font-medium text-emerald-300/90">Test Passed</span>
-                                <span className="text-xs text-emerald-400/60 block mt-0.5">
-                                  You answered all questions correctly
-                                </span>
-                              </div>
-                            </div>
-                          ) : activeQuiz ? (
-                            <TopicTestQuiz
-                              title={activeQuiz.title}
-                              questions={activeQuiz.questions}
-                              onClose={() => setActiveQuiz(null)}
-                              onPass={() => handleModulePass(mi)}
-                            />
-                          ) : (
-                            <button
-                              onClick={() =>
-                                setActiveQuiz({
-                                  title: mod.topicTest!.title,
-                                  questions: mod.topicTest!.questions,
-                                })
-                              }
-                              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-dashed border-amber-500/20 bg-amber-500/[0.02] hover:bg-amber-500/[0.05] transition-all duration-150 active:scale-[0.99] cursor-pointer group"
-                            >
-                              <Brain size={18} className="text-amber-400 shrink-0" />
-                              <div className="text-left min-w-0">
-                                <span className="text-sm font-medium text-amber-300/90 group-hover:text-amber-300 transition-colors">
-                                  {mod.topicTest.title}
-                                </span>
-                                <span className="text-xs text-muted block mt-0.5">
-                                  {mod.topicTest.questions.length} questions — test what you've learned
-                                </span>
-                              </div>
-                              <ChevronRight size={16} className="text-amber-400/60 ml-auto shrink-0" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* No course yet — prompt to generate */}
-        {goal.aiCourseStatus === "idle" && (!goal.course || goal.course.length === 0) && (
-          <div className="rounded-xl border border-dashed border-primary/20 bg-primary/[0.02] p-6 text-center">
-            <Brain size={32} className="text-primary/40 mx-auto mb-3" />
-            <h3 className="text-base font-heading font-semibold text-foreground mb-1">
-              No AI learning path yet
-            </h3>
-            <p className="text-sm text-muted max-w-sm mx-auto leading-relaxed mb-4">
-              Let Knock AI build a structured course with modules, books, and topic tests
-              tailored to this goal.
-            </p>
-            <button
-              onClick={() => generateCourse(goal.id)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-primary text-white hover:bg-primary-hover transition-all duration-150 active:scale-[0.97] cursor-pointer shadow-lg shadow-primary/20"
-            >
-              <Sparkles size={16} />
-              Generate AI Learning Path
-            </button>
-          </div>
+        {/* AI course button */}
+        {goal.aiCourseStatus !== "ready" && (
+          <button
+            onClick={() => processGoalWithAI(goal.id)}
+            disabled={loading || goal.aiCourseStatus === "generating"}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {goal.aiCourseStatus === "generating" ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating course…
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Generate AI Course
+              </>
+            )}
+          </button>
         )}
       </div>
 
-      {/* ── FloatReader ── */}
-      {readerBook && (
-        <FloatReader
-          isOpen={readerOpen}
-          onClose={closeReader}
-          bookTitle={readerBook.title}
-          chapters={readerBook.chapters.map((ch, i) => ({
-            id: `ch-${i}`,
-            book_id: readerBook.title,
-            title: ch.title,
-            content: ch.content,
-            order: i,
-            created_at: new Date().toISOString(),
-          }))}
-          currentChapterId={`ch-${currentChapterIdx}`}
-          onNavigateChapter={navigateChapter}
-          onChapterRead={handleChapterRead}
+      {/* Steps section — only show non-quiz-tracking steps */}
+      {goal.steps.filter((s) => !/^step-\d+$/.test(s.id)).length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-heading font-semibold text-foreground uppercase tracking-wider">
+            Steps
+          </h2>
+          <div className="space-y-2">
+            {goal.steps
+              .filter((s) => !/^step-\d+$/.test(s.id))
+              .sort((a, b) => a.order - b.order)
+              .map((step) => (
+                <button
+                  key={step.id}
+                  onClick={() => toggleStep(goal.id, step.id)}
+                  className="w-full flex items-start gap-3 p-3 rounded-lg bg-surface hover:bg-surface-hover transition-colors text-left group"
+                >
+                  {step.completed ? (
+                    <CheckCircle className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  ) : (
+                    <Circle className="w-5 h-5 text-muted group-hover:text-foreground transition-colors shrink-0 mt-0.5" />
+                  )}
+                  <div>
+                    <p
+                      className={`text-sm ${
+                        step.completed
+                          ? "line-through text-muted"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {step.title}
+                    </p>
+                    {step.description && (
+                      <p className="text-xs text-muted mt-0.5">
+                        {step.description}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Course section */}
+      {goal.course && goal.course.length > 0 && (
+        <GoalCourseSection
+          course={goal.course}
+          goalId={goal.id}
+          onViewDetail={(id) => navigate(`/goals/${id}`)}
+          completedQuizzes={completedQuizzes}
+          onCompleteQuiz={handleCompleteQuiz}
         />
       )}
-    </>
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { User, AuthEvent as SupabaseAuthEvent } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import * as api from "../api/client";
-import type { UserProfile } from "../api/types";
+import type { UserProfile } from "../types/supabase";
 
 type AuthEvent = SupabaseAuthEvent;
 
@@ -17,7 +17,7 @@ interface AuthState {
   initialize: () => Promise<void>;
   signUp: (email: string, password: string, nickname: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithOAuth: (provider: 'google' | 'facebook') => Promise<void>;
+  signInWithOAuth: (provider: 'google') => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
@@ -105,7 +105,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signInWithOAuth: async (provider: 'google' | 'facebook') => {
+  signInWithOAuth: async (provider: 'google') => {
     set({ isLoading: true, error: null });
     try {
       const { error } = await supabase.auth.signInWithOAuth({

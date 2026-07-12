@@ -7,7 +7,7 @@ import {
   Newspaper,
   Users,
   User,
-  Sparkles,
+  Sun,
   Menu,
   X,
   LogOut,
@@ -15,9 +15,10 @@ import {
   Lock,
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
+import ThemeToggle from "./ThemeToggle";
 
 const navItems = [
-  { path: "/", label: "Galaxy", icon: Sparkles, protected: false },
+  { path: "/", label: "Galaxy", icon: Sun, protected: false },
   { path: "/home", label: "Dashboard", icon: PenLine, protected: false },
   { path: "/journal", label: "Journal", icon: PenLine, protected: false },
   { path: "/goals", label: "Goals", icon: FolderOpen, protected: true },
@@ -66,8 +67,8 @@ export default function Sidebar() {
           {/* Brand */}
           <div className="mb-8 mt-8 lg:mt-0">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-                <Sparkles size={18} className="text-white" />
+              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                <Sun size={18} className="text-white" />
               </div>
               <div>
                 <h1 className="font-heading text-lg font-semibold text-foreground">
@@ -137,6 +138,11 @@ export default function Sidebar() {
               );
             })}
           </nav>
+
+          {/* Theme toggle */}
+          <div className="mb-2">
+            <ThemeToggle />
+          </div>
 
           {/* Sign out / Sign in */}
           <div className="pt-4 border-t border-border">

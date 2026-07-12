@@ -6,34 +6,94 @@
   --font-heading: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   --font-serif: 'Crimson Pro', ui-serif, Georgia, serif;
 
-  /* Dark palette — deep indigo base, warm amber/gold accents */
-  --color-bg: oklch(0.13 0.025 260);
-  --color-surface: oklch(0.17 0.025 260);
-  --color-surface-hover: oklch(0.2 0.025 260);
-  --color-surface-active: oklch(0.23 0.025 260);
-  --color-foreground: oklch(0.88 0.015 80);
-  --color-muted: oklch(0.5 0.02 260);
-  --color-primary: oklch(0.62 0.13 50);
-  --color-primary-hover: oklch(0.55 0.13 50);
-  --color-secondary: oklch(0.55 0.10 70);
-  --color-accent: oklch(0.55 0.15 280);
-  --color-border: oklch(0.25 0.03 260);
-  --color-destructive: oklch(0.6 0.2 25);
+  /* Tokens reference CSS custom properties so light/dark mode works */
+  --color-bg: var(--color-bg-val);
+  --color-surface: var(--color-surface-val);
+  --color-surface-hover: var(--color-surface-hover-val);
+  --color-surface-active: var(--color-surface-active-val);
+  --color-foreground: var(--color-foreground-val);
+  --color-muted: var(--color-muted-val);
+  --color-primary: var(--color-primary-val);
+  --color-primary-hover: var(--color-primary-hover-val);
+  --color-secondary: var(--color-secondary-val);
+  --color-accent: var(--color-accent-val);
+  --color-border: var(--color-border-val);
+  --color-destructive: var(--color-destructive-val);
 
-  /* Tag colors */
-  --color-tag-blue: oklch(0.6 0.15 250);
-  --color-tag-green: oklch(0.6 0.15 150);
-  --color-tag-amber: oklch(0.65 0.15 70);
-  --color-tag-rose: oklch(0.6 0.15 360);
-  --color-tag-violet: oklch(0.6 0.15 290);
-  --color-tag-teal: oklch(0.6 0.12 190);
+  --color-tag-blue: var(--color-tag-blue-val);
+  --color-tag-green: var(--color-tag-green-val);
+  --color-tag-amber: var(--color-tag-amber-val);
+  --color-tag-rose: var(--color-tag-rose-val);
+  --color-tag-violet: var(--color-tag-violet-val);
+  --color-tag-teal: var(--color-tag-teal-val);
 
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-sm: var(--shadow-sm-val);
+  --shadow-md: var(--shadow-md-val);
+  --shadow-lg: var(--shadow-lg-val);
 
-  --glow-primary: 0 0 20px oklch(0.62 0.13 50 / 0.15);
-  --glow-accent: 0 0 20px oklch(0.55 0.15 280 / 0.15);
+  --glow-primary: var(--glow-primary-val);
+  --glow-accent: var(--glow-accent-val);
+}
+
+/* ── DARK MODE (default) ── */
+:root,
+[data-theme="dark"] {
+  --color-bg-val: oklch(0.13 0.025 260);
+  --color-surface-val: oklch(0.17 0.025 260);
+  --color-surface-hover-val: oklch(0.2 0.025 260);
+  --color-surface-active-val: oklch(0.23 0.025 260);
+  --color-foreground-val: oklch(0.88 0.015 80);
+  --color-muted-val: oklch(0.5 0.02 260);
+  --color-primary-val: oklch(0.62 0.13 50);
+  --color-primary-hover-val: oklch(0.55 0.13 50);
+  --color-secondary-val: oklch(0.55 0.10 70);
+  --color-accent-val: oklch(0.55 0.15 280);
+  --color-border-val: oklch(0.25 0.03 260);
+  --color-destructive-val: oklch(0.6 0.2 25);
+
+  --color-tag-blue-val: oklch(0.6 0.15 250);
+  --color-tag-green-val: oklch(0.6 0.15 150);
+  --color-tag-amber-val: oklch(0.65 0.15 70);
+  --color-tag-rose-val: oklch(0.6 0.15 360);
+  --color-tag-violet-val: oklch(0.6 0.15 290);
+  --color-tag-teal-val: oklch(0.6 0.12 190);
+
+  --shadow-sm-val: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md-val: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg-val: 0 10px 15px rgba(0, 0, 0, 0.5);
+
+  --glow-primary-val: 0 0 20px oklch(0.62 0.13 50 / 0.15);
+  --glow-accent-val: 0 0 20px oklch(0.55 0.15 280 / 0.15);
+}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"] {
+  --color-bg-val: oklch(0.97 0.01 80);
+  --color-surface-val: oklch(0.93 0.01 80);
+  --color-surface-hover-val: oklch(0.9 0.015 80);
+  --color-surface-active-val: oklch(0.87 0.015 80);
+  --color-foreground-val: oklch(0.15 0.02 260);
+  --color-muted-val: oklch(0.5 0.02 260);
+  --color-primary-val: oklch(0.55 0.13 50);
+  --color-primary-hover-val: oklch(0.48 0.13 50);
+  --color-secondary-val: oklch(0.5 0.10 70);
+  --color-accent-val: oklch(0.5 0.15 280);
+  --color-border-val: oklch(0.85 0.02 260);
+  --color-destructive-val: oklch(0.55 0.2 25);
+
+  --color-tag-blue-val: oklch(0.5 0.16 250);
+  --color-tag-green-val: oklch(0.5 0.16 150);
+  --color-tag-amber-val: oklch(0.55 0.16 70);
+  --color-tag-rose-val: oklch(0.5 0.16 360);
+  --color-tag-violet-val: oklch(0.5 0.16 290);
+  --color-tag-teal-val: oklch(0.5 0.13 190);
+
+  --shadow-sm-val: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-md-val: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg-val: 0 10px 15px rgba(0, 0, 0, 0.12);
+
+  --glow-primary-val: 0 0 20px oklch(0.55 0.13 50 / 0.2);
+  --glow-accent-val: 0 0 20px oklch(0.5 0.15 280 / 0.2);
 }
 
 @layer base {

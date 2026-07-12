@@ -36,12 +36,15 @@ Growth is not a straight line—it is an orbit. We revisit our ideas, goals, and
 SurjyoPath uses three specialized AI engines to support different aspects of personal growth.
 
 ### Knock
+
 Analyzes journal entries to identify hidden patterns, reflective questions, cognitive blind spots, and personalized learning opportunities.
 
 ### Pathway
+
 Transforms user ambitions into structured learning journeys with milestones, chapters, and assessments tailored to individual goals.
 
 ### Polish
+
 Refines personal writing into publication-ready content while preserving the author's authentic voice and writing style.
 
 AI inference is powered by **MiniMax M2.7** through **Fireworks AI**, accelerated by **AMD MI300X GPUs** to provide fast and scalable intelligent experiences.
@@ -54,4 +57,4 @@ SurjyoPath aims to become an intelligent companion for lifelong personal growth.
 
 Its mission is to bring together reflection, education, creativity, and community into a single ecosystem where technology enhances human thinking instead of replacing it. By combining artificial intelligence with thoughtful design, the platform helps users better understand themselves, develop meaningful skills, express their ideas, and build lasting connections.
 
-Rather than becoming another productivity application, SurjyoPath aspires to be a **personal growth operating system**—a place where every journal entry, every goal, every lesson, and every interaction contributes to a more intentional and fulfilling life.
+Rather than becoming another productivity application, SurjyoPath aspires to be a **personal growth operating system**—a place where every journal entry, every goal, every lesson, and every interaction contributes to a more intentional and fulfilling life.blobs/be5f1db4190f4488803f5f5a022e4c07.md

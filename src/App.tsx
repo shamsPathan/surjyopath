@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./store/useAuthStore";
+import { useThemeStore } from "./store/useThemeStore";
 import { useJournalStore } from "./store/useJournalStore";
 import { usePublicationStore } from "./store/usePublicationStore";
 import { useLibraryStore } from "./store/useLibraryStore";
@@ -20,7 +21,6 @@ import HomePage from "./pages/HomePage";
 import GalaxyPage from "./pages/GalaxyPage";
 
 function AppLayout() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   return <Layout />;
 }
 
@@ -43,9 +43,15 @@ export default function App() {
   const initLibrary = useLibraryStore((s) => s.initialize);
   const initFriends = useFriendStore((s) => s.initialize);
 
+  const theme = useThemeStore((s) => s.theme);
+
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -83,6 +89,9 @@ export default function App() {
           )
         }
       />
+      {/* Publication detail is standalone (no sidebar) — public, shareable */}
+      <Route path="/publications/:id" element={<ArticleView />} />
+
       <Route element={<AppLayout />}>
         <Route path="/" element={<GalaxyPage />} />
         <Route path="/home" element={<HomePage />} />
@@ -91,7 +100,6 @@ export default function App() {
         <Route path="/goals/:id" element={<ProtectedRoute><GoalDetailPage /></ProtectedRoute>} />
         <Route path="/library" element={<ProtectedRoute><LibraryPage /></ProtectedRoute>} />
         <Route path="/publications" element={<PublicationsPage />} />
-        <Route path="/publications/:id" element={<ArticleView />} />
         <Route path="/friends" element={<ProtectedRoute><FriendsPage /></ProtectedRoute>} />
         <Route path="/friends/:id" element={<ProtectedRoute><FriendProfilePage /></ProtectedRoute>} />
         <Route

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FDE047" stop-opacity="1"/>
+      <stop offset="30%" stop-color="#F59E0B" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#D97706" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#B45309" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sunCore" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FEF3C7"/>
+      <stop offset="50%" stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </radialGradient>
+    <linearGradient id="rayGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FCD34D" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer glow -->
+  <circle cx="50" cy="50" r="48" fill="url(#sunGlow)"/>
+  <!-- Sun rays -->
+  <g stroke="url(#rayGrad)" stroke-width="2.5" stroke-linecap="round" opacity="0.7">
+    <line x1="50" y1="6" x2="50" y2="20"/>
+    <line x1="50" y1="80" x2="50" y2="94"/>
+    <line x1="6" y1="50" x2="20" y2="50"/>
+    <line x1="80" y1="50" x2="94" y2="50"/>
+    <line x1="18.7" y1="18.7" x2="28.7" y2="28.7"/>
+    <line x1="71.3" y1="71.3" x2="81.3" y2="81.3"/>
+    <line x1="18.7" y1="81.3" x2="28.7" y2="71.3"/>
+    <line x1="71.3" y1="18.7" x2="81.3" y2="28.7"/>
+  </g>
+  <!-- Sun body -->
+  <circle cx="50" cy="50" r="22" fill="url(#sunCore)"/>
+  <!-- Inner highlight -->
+  <circle cx="44" cy="44" r="8" fill="#FFF" opacity="0.35"/>
+</svg>

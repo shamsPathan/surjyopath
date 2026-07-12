@@ -125,22 +125,22 @@ export default function FloatReader({
         >
           {/* ── Top Bar ── */}
           <div className="flex items-center justify-between px-2 pb-3">
-            <div className="flex items-center gap-2 text-muted/60">
+            <div className="flex items-center gap-2 text-gray-400">
               <BookOpen size={14} />
               <span className="text-xs font-medium tracking-wide uppercase">
                 {bookTitle}
               </span>
-              <span className="text-xs text-muted/40">&middot;</span>
+              <span className="text-xs text-gray-500">&middot;</span>
               <span className="text-xs">{progress}%</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 rounded bg-surface/30 text-muted/40 border border-border/30">
+              <kbd className="hidden sm:inline-flex text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-gray-500 border border-white/10">
                 Esc
               </kbd>
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-muted/60 hover:text-foreground hover:bg-surface/30 transition-all duration-150 active:scale-90 cursor-pointer"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-150 active:scale-90 cursor-pointer"
                 aria-label="Close reader"
               >
                 <X size={18} />
@@ -152,10 +152,10 @@ export default function FloatReader({
           <div
             ref={contentRef}
             data-reader-scroll
-            className="flex-1 overflow-y-auto rounded-2xl bg-gradient-to-b from-[oklch(0.13_0.02_50)] to-[oklch(0.10_0.02_50)] border border-border/40 p-8 md:p-12 shadow-2xl"
+            className="flex-1 overflow-y-auto rounded-2xl bg-gradient-to-b from-[oklch(0.13_0.02_50)] to-[oklch(0.10_0.02_50)] border border-white/10 p-8 md:p-12 shadow-2xl"
           >
             {/* Chapter title */}
-            <h2 className="text-2xl md:text-3xl font-serif font-medium text-foreground leading-snug mb-6 text-balance">
+            <h2 className="text-2xl md:text-3xl font-serif font-medium text-gray-100 leading-snug mb-6 text-balance">
               {current.title}
             </h2>
 
@@ -167,7 +167,7 @@ export default function FloatReader({
             </div>
 
             {/* Content */}
-            <div className="font-serif text-base md:text-lg leading-[1.85] text-foreground/85 space-y-5">
+            <div className="font-serif text-base md:text-lg leading-[1.85] text-gray-200/90 space-y-5">
               {current.content.split("\n").map((paragraph, i) => {
                 const trimmed = paragraph.trim();
                 if (!trimmed) return <div key={i} className="h-4" />;
@@ -218,7 +218,7 @@ export default function FloatReader({
               {prevChapter ? (
                 <button
                   onClick={() => onNavigateChapter(prevChapter.id)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted hover:text-foreground hover:bg-surface/20 transition-all duration-150 active:scale-95 cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-150 active:scale-95 cursor-pointer"
                   aria-label={`Previous: ${prevChapter.title}`}
                 >
                   <ChevronLeft size={16} />
@@ -242,7 +242,7 @@ export default function FloatReader({
                       ? "bg-primary w-4"
                       : i < currentIndex
                         ? "bg-primary/40"
-                        : "bg-border/40 hover:bg-border/60"
+                        : "bg-white/20 hover:bg-white/30"
                   }`}
                   aria-label={`Go to chapter: ${ch.title}`}
                 />
@@ -253,7 +253,7 @@ export default function FloatReader({
               {nextChapter ? (
                 <button
                   onClick={() => onNavigateChapter(nextChapter.id)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted hover:text-foreground hover:bg-surface/20 transition-all duration-150 active:scale-95 cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-150 active:scale-95 cursor-pointer"
                   aria-label={`Next: ${nextChapter.title}`}
                 >
                   <span className="hidden sm:inline truncate max-w-[160px]">

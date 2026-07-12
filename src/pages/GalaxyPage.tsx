@@ -13,7 +13,7 @@ import {
   Newspaper,
   Users,
   User,
-  Sparkles,
+  Sun,
   ArrowRight,
 } from "lucide-react";
 
@@ -213,8 +213,8 @@ function CentralSun() {
             boxShadow: "0 0 60px oklch(0.62 0.13 50 / 0.3)",
           }}
         />
-        {/* Sparkles icon in the center */}
-        <Sparkles
+        {/* Sun icon in the center */}
+        <Sun
           size={22}
           className="relative text-white/90 z-10"
           style={{ filter: "drop-shadow(0 0 12px oklch(0.62 0.13 50 / 0.5))" }}
