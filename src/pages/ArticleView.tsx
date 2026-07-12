@@ -269,17 +269,21 @@ export default function ArticleView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const publications = usePublicationStore((s) => s.publications);
+  const fetchPublicationById = usePublicationStore((s) => s.fetchPublicationById);
   const [notFound, setNotFound] = useState(false);
 
   const publication = publications.find((p) => p.id === id);
 
   useEffect(() => {
-    if (!publication) {
-      // Give store time to initialize before showing 404
-      const timer = setTimeout(() => setNotFound(true), 1000);
-      return () => clearTimeout(timer);
+    if (!publication && id) {
+      // Try fetching from the server before showing 404
+      fetchPublicationById(id).then((result) => {
+        if (!result) {
+          setTimeout(() => setNotFound(true), 1000);
+        }
+      });
     }
-  }, [publication]);
+  }, [publication, id, fetchPublicationById]);
 
   const handleBack = () => navigate("/publications");
 

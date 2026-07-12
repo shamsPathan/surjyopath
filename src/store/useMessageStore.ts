@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { useAuthStore } from "./useAuthStore";
-import type { Message, ConversationSummary, UserProfile } from "../api/types";
+import type { Message, ConversationSummary, UserProfile } from "../types/supabase";
 import * as api from "../api/client";
 
 interface MessageState {

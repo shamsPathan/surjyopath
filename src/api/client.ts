@@ -1,32 +1,142 @@
 /**
- * Vital Vault API client.
+ * Surjyopath API client.
  *
- * Routes auth + data calls to Supabase, and AI calls to the Go backend.
- * In dev mode, falls back to mock responses when the Go backend is unavailable.
+ * Routes auth + data calls to Supabase.
+ * AI calls go through the knock-ai Edge Function; mock fallbacks for dev.
  */
 
 import { supabase } from "../lib/supabase";
 import { CONFIG } from "../lib/config";
 import type { User } from "@supabase/supabase-js";
-import type {
-  UserProfile,
-  Thought,
-  Goal,
-  CourseModule,
-  Book,
-  Publication,
-  PublicationComment,
-  AIAnalysisResponse,
-  GoalCourseResponse,
-  TestQuestion,
-  TopicTest,
-  Chapter,
-  FriendRequest,
-  Friendship,
-  SearchUserResult,
-  Message,
-  ConversationSummary,
-} from "./types";
+
+/* ─── Canonical type imports ─── */
+import type { UserProfile, CourseModule, Book, GoalCourseResponse, Message, ConversationSummary } from "../types/supabase";
+import type { Thought, ThoughtAnalysis, AIChatFeedback } from "../types/thought";
+import { thoughtFromDb } from "../types/thought";
+import type { Goal, GoalStep } from "../types/goal";
+import { goalFromDb } from "../types/goal";
+import type { Publication } from "../types/publication";
+
+/* ─── Types not yet in canonical homes — keep here until moved ─── */
+
+export interface AIAnalysisResponse {
+  thoughtId: string;
+  analysis: {
+    wasRight: boolean;
+    summary: string;
+    improvements: string[];
+    hiddenQuestions: { question: string; answer: string }[];
+    isMisleading: boolean;
+    misleadingReason: string | null;
+    suggestedReading: string[];
+    suggestions: string[];
+  };
+}
+
+export interface PublicationComment {
+  id: string;
+  publication_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface Chapter {
+  id: string;
+  book_id: string;
+  title: string;
+  content: string;
+  order: number;
+  created_at: string;
+}
+
+export interface TopicTest {
+  id: string;
+  module_id: string;
+  title: string;
+  is_completed: boolean;
+  score: number | null;
+  created_at: string;
+}
+
+export interface TestQuestion {
+  id: string;
+  test_id: string;
+  question: string;
+  options: string[];
+  correct_index: number;
+  user_answer_index: number | null;
+  order: number;
+  test_type: "topic" | "chapter";
+  created_at: string;
+}
+
+export interface SearchUserResult {
+  id: string;
+  nickname: string;
+  avatar_emoji: string;
+  bio: string | null;
+  level: number;
+  xp: number;
+}
+
+/* Friend/request types — the DB returns snake_case; keep them here for now */
+export interface FriendRequest {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  status: "pending" | "accepted" | "declined";
+  created_at: string;
+  from_user: UserProfile;
+}
+
+export interface Friendship {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  added_at: string;
+  friend: UserProfile;
+}
+
+/* ─── DB-to-domain helpers ─── */
+
+/** Map a Supabase publications row (with joined `user`) into the canonical Publication type. */
+function publicationFromDb(row: {
+  id: string;
+  thought_id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  category: string;
+  likes: number;
+  created_at: string;
+  user?: { nickname: string; avatar_emoji: string } | null;
+}): Publication {
+  const excerpt =
+    row.content.length > 140
+      ? row.content.slice(0, 140).trimEnd() + "…"
+      : row.content;
+  return {
+    id: row.id,
+    thought_id: row.thought_id,
+    title: row.title,
+    content: row.content,
+    excerpt,
+    tags: [],
+    category: row.category,
+    is_polished: false,
+    author_name: row.user?.nickname ?? "Unknown",
+    user_id: row.user_id,
+    likes_count: row.likes,
+    comments_count: 0,
+    liked_by_user: false,
+    comments: [],
+    status: "published",
+    created_at: row.created_at,
+    updated_at: row.created_at,
+    published_at: row.created_at,
+  };
+}
 
 /* ─── Helpers ─── */
 
@@ -155,7 +265,7 @@ export async function getThoughts(userId: string): Promise<Thought[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as Thought[];
+  return (data ?? []).map((row: any) => thoughtFromDb(row));
 }
 
 export async function createThought(
@@ -174,16 +284,33 @@ export async function createThought(
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as Thought;
+  return thoughtFromDb(data);
 }
 
 export async function updateThought(
   thoughtId: string,
-  updates: Partial<Pick<Thought, "content" | "status" | "is_published">>,
+  updates: Partial<Pick<Thought, "content" | "status" | "is_published">> & {
+    analysis?: ThoughtAnalysis | null;
+    edited_content?: string | null;
+    processed_at?: string | null;
+  },
 ): Promise<void> {
+  const dbUpdates: Record<string, any> = { ...updates, updated_at: new Date().toISOString() };
+  // Serialize JSON fields for storage
+  if (updates.analysis !== undefined) {
+    dbUpdates.analysis = updates.analysis;
+    delete (dbUpdates as any).analysis;
+    dbUpdates.analysis = updates.analysis ? JSON.stringify(updates.analysis) : null;
+  }
+  if (updates.edited_content !== undefined) {
+    dbUpdates.edited_content = updates.edited_content;
+  }
+  if (updates.processed_at !== undefined) {
+    dbUpdates.processed_at = updates.processed_at;
+  }
   const { error } = await supabase
     .from("thoughts")
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .update(dbUpdates)
     .eq("id", thoughtId);
   if (error) throw error;
 }
@@ -196,17 +323,15 @@ export async function deleteThought(thoughtId: string): Promise<void> {
   if (error) throw error;
 }
 
-/* ─── Knock AI (Go Backend) ─── */
+/* ─── Knock AI ─── */
 
 export async function knockThought(thoughtId: string): Promise<AIAnalysisResponse> {
-  // Try Go backend first, fall back to mock
   try {
     return await goFetch<AIAnalysisResponse>("/api/ai/knock/thought", {
       method: "POST",
       body: JSON.stringify({ thoughtId }),
     });
   } catch {
-    // Fall back to mock
     return mockKnockThought(thoughtId);
   }
 }
@@ -231,14 +356,21 @@ export async function getGoals(userId: string): Promise<Goal[]> {
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as Goal[];
+  return (data ?? []).map((row: any) => goalFromDb(row));
 }
 
 export async function createGoal(
   userId: string,
   title: string,
   description: string,
-  thoughtId?: string,
+  options?: {
+    thoughtId?: string;
+    direction?: string | null;
+    emoji?: string;
+    targetDate?: string;
+    steps?: GoalStep[];
+    aiCourseStatus?: string;
+  },
 ): Promise<Goal> {
   const { data, error } = await supabase
     .from("goals")
@@ -246,23 +378,53 @@ export async function createGoal(
       user_id: userId,
       title,
       description,
-      thought_id: thoughtId ?? null,
+      thought_id: options?.thoughtId ?? null,
+      direction: options?.direction ?? null,
+      emoji: options?.emoji ?? "🎯",
+      target_date: options?.targetDate ?? null,
       status: "pending",
       progress: 0,
+      steps: options?.steps ?? [],
+      ai_course_status: options?.aiCourseStatus ?? "idle",
     })
     .select()
     .single();
   if (error) throw error;
-  return data as unknown as Goal;
+  return goalFromDb(data);
 }
 
 export async function updateGoal(
   goalId: string,
-  updates: Partial<Pick<Goal, "progress" | "status" | "title" | "description">>,
+  updates: Partial<Pick<Goal, "progress" | "status" | "title" | "description">> & {
+    steps?: GoalStep[];
+    direction?: string | null;
+    last_touched_step_at?: string | null;
+    aiCourseStatus?: string;
+    course?: any;
+    is_new?: boolean;
+    target_date?: string;
+    emoji?: string;
+  },
 ): Promise<void> {
+  const dbUpdates: Record<string, any> = { ...updates };
+  if (updates.aiCourseStatus !== undefined) {
+    dbUpdates.ai_course_status = updates.aiCourseStatus;
+    delete dbUpdates.aiCourseStatus;
+  }
+  if (updates.target_date !== undefined) {
+    dbUpdates.target_date = updates.target_date;
+  }
   const { error } = await supabase
     .from("goals")
-    .update(updates)
+    .update({ ...dbUpdates, updated_at: new Date().toISOString() })
+    .eq("id", goalId);
+  if (error) throw error;
+}
+
+export async function deleteGoal(goalId: string): Promise<void> {
+  const { error } = await supabase
+    .from("goals")
+    .delete()
     .eq("id", goalId);
   if (error) throw error;
 }
@@ -356,13 +518,23 @@ export async function completeTopicTest(
 
 /* ─── Publications ─── */
 
+export async function getPublicationById(id: string): Promise<Publication | null> {
+  const { data, error } = await supabase
+    .from("publications")
+    .select("*, user:user_id(nickname, avatar_emoji)")
+    .eq("id", id)
+    .single();
+  if (error) return null;
+  return publicationFromDb(data as any);
+}
+
 export async function getPublications(): Promise<Publication[]> {
   const { data, error } = await supabase
     .from("publications")
-    .select("*")
+    .select("*, user:user_id(nickname, avatar_emoji)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as Publication[];
+  return (data ?? []).map((row: any) => publicationFromDb(row));
 }
 
 export async function publishThought(
@@ -370,7 +542,7 @@ export async function publishThought(
   userId: string,
   title: string,
   content: string,
-  category: Publication["category"] = "reflection",
+  category?: string,
 ): Promise<Publication> {
   const { data, error } = await supabase
     .from("publications")
@@ -379,9 +551,9 @@ export async function publishThought(
       user_id: userId,
       title,
       content,
-      category,
+      category: category ?? "reflection",
     })
-    .select()
+    .select("*, user:user_id(nickname, avatar_emoji)")
     .single();
   if (error) throw error;
 
@@ -391,7 +563,26 @@ export async function publishThought(
     .update({ is_published: true, publication_id: data.id })
     .eq("id", thoughtId);
 
-  return data as unknown as Publication;
+  return publicationFromDb(data);
+}
+
+export async function updatePublication(
+  publicationId: string,
+  updates: Partial<Pick<Publication, "content" | "title" | "status">>,
+): Promise<void> {
+  const { error } = await supabase
+    .from("publications")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", publicationId);
+  if (error) throw error;
+}
+
+export async function deletePublication(publicationId: string): Promise<void> {
+  const { error } = await supabase
+    .from("publications")
+    .delete()
+    .eq("id", publicationId);
+  if (error) throw error;
 }
 
 export async function likePublication(
@@ -403,7 +594,6 @@ export async function likePublication(
     .insert({ publication_id: publicationId, user_id: userId });
   if (likeError && likeError.code !== "23505") throw likeError; // 23505 = already liked
 
-  // Update count
   await supabase.rpc("increment_publication_likes", {
     pub_id: publicationId,
   });
@@ -428,7 +618,7 @@ export async function unlikePublication(
 export async function getComments(publicationId: string): Promise<PublicationComment[]> {
   const { data, error } = await supabase
     .from("publication_comments")
-    .select("*")
+    .select("*, user:user_id(nickname)")
     .eq("publication_id", publicationId)
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -440,16 +630,36 @@ export async function addComment(
   userId: string,
   content: string,
   parentId?: string,
-): Promise<void> {
-  const { error } = await supabase
+): Promise<PublicationComment> {
+  const { data, error } = await supabase
     .from("publication_comments")
     .insert({
       publication_id: publicationId,
       user_id: userId,
       content,
       parent_id: parentId ?? null,
-    });
+    })
+    .select()
+    .single();
   if (error) throw error;
+  return data as unknown as PublicationComment;
+}
+
+export async function deleteComment(commentId: string): Promise<void> {
+  const { error } = await supabase
+    .from("publication_comments")
+    .delete()
+    .eq("id", commentId);
+  if (error) throw error;
+}
+
+export async function getUserLikedPublicationIds(userId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("publication_likes")
+    .select("publication_id")
+    .eq("user_id", userId);
+  if (error) throw error;
+  return (data ?? []).map((r) => r.publication_id);
 }
 
 /* ─── Achievements & Progress ─── */
@@ -466,9 +676,7 @@ export async function getUserAchievements(userId: string): Promise<any[]> {
 /* ─── Mock AI Responses (dev mode) ─── */
 
 async function mockKnockThought(thoughtId: string): Promise<AIAnalysisResponse> {
-  // Simulate network delay
   await new Promise((r) => setTimeout(r, 1500));
-
   return {
     thoughtId,
     analysis: {
@@ -528,7 +736,6 @@ export async function mockPolish(
 
 export async function mockProcessGoal(goalId: string): Promise<GoalCourseResponse> {
   await new Promise((r) => setTimeout(r, 2000));
-
   return {
     goalId,
     modules: [
@@ -701,8 +908,6 @@ export async function markChapterRead(
 /* ─── Messages ─── */
 
 export async function getConversations(userId: string): Promise<ConversationSummary[]> {
-  // Get all messages where user is sender or recipient
-  // Group by the other participant and return summary
   const { data: sent, error: sentErr } = await supabase
     .from("messages")
     .select("*, recipient:recipient_id(id, nickname, avatar_emoji, bio, level, xp)")
@@ -718,29 +923,30 @@ export async function getConversations(userId: string): Promise<ConversationSumm
   if (sentErr) throw sentErr;
   if (recvErr) throw recvErr;
 
-  // Group by other user
-  const conversations = new Map<string, { other_user: UserProfile; last_message: Message; unread_count: number }>();
+  const conversations = new Map<string, ConversationSummary>();
 
-  for (const msg of (sent ?? []) as unknown as Message[]) {
+  for (const msg of (sent ?? []) as any[]) {
     const otherId = msg.recipient_id;
     const existing = conversations.get(otherId);
+    const lastMsg = { ...msg, recipient: undefined, sender: undefined };
     if (!existing || new Date(msg.created_at) > new Date(existing.last_message.created_at)) {
       conversations.set(otherId, {
-        other_user: msg.recipient!,
-        last_message: { ...msg, recipient: undefined },
+        other_user: msg.recipient as UserProfile,
+        last_message: lastMsg as Message,
         unread_count: 0,
       });
     }
   }
 
-  for (const msg of (received ?? []) as unknown as Message[]) {
+  for (const msg of (received ?? []) as any[]) {
     const otherId = msg.sender_id;
     const existing = conversations.get(otherId);
+    const lastMsg = { ...msg, sender: undefined, recipient: undefined };
     if (!existing || new Date(msg.created_at) > new Date(existing.last_message.created_at)) {
       conversations.set(otherId, {
-        other_user: msg.sender!,
-        last_message: { ...msg, sender: undefined },
-        unread_count: msg.is_read ? existing?.unread_count ?? 0 : (existing?.unread_count ?? 0) + 1,
+        other_user: msg.sender as UserProfile,
+        last_message: lastMsg as Message,
+        unread_count: msg.is_read ? (existing?.unread_count ?? 0) : (existing?.unread_count ?? 0) + 1,
       });
     } else if (!msg.is_read) {
       existing!.unread_count += 1;
@@ -781,7 +987,6 @@ export async function sendMessage(
   });
   if (error) throw error;
 
-  // Create notification for recipient
   const { data: fromProfile } = await supabase
     .from("users")
     .select("nickname")
@@ -790,7 +995,7 @@ export async function sendMessage(
 
   await supabase.from("notifications").insert({
     user_id: recipientId,
-    type: "friend_request", // use existing type — we can add "new_message" type later
+    type: "friend_request",
     title: "New Message",
     body: `${fromProfile?.nickname ?? "Someone"} sent you a message!`,
     metadata: { from_user_id: senderId, type: "message" },
@@ -844,7 +1049,6 @@ export async function sendFriendRequest(fromUserId: string, toUserId: string): P
     throw error;
   }
 
-  // Create notification for the recipient
   const { data: fromProfile } = await supabase
     .from("users")
     .select("nickname")
@@ -883,14 +1087,12 @@ export async function getOutgoingRequests(userId: string): Promise<FriendRequest
 }
 
 export async function acceptFriendRequest(requestId: string, userId: string, fromUserId: string): Promise<void> {
-  // Update request status
   const { error: updateError } = await supabase
     .from("friend_requests")
     .update({ status: "accepted" })
     .eq("id", requestId);
   if (updateError) throw updateError;
 
-  // Create bidirectional friendships
   const { error: f1Error } = await supabase
     .from("friends")
     .insert({ user_id: userId, friend_id: fromUserId });
@@ -901,7 +1103,6 @@ export async function acceptFriendRequest(requestId: string, userId: string, fro
     .insert({ user_id: fromUserId, friend_id: userId });
   if (f2Error && f2Error.code !== "23505") throw f2Error;
 
-  // Notify the requester
   const { data: toProfile } = await supabase
     .from("users")
     .select("nickname")
@@ -928,11 +1129,11 @@ export async function declineFriendRequest(requestId: string): Promise<void> {
 export async function getUserPublications(userId: string): Promise<Publication[]> {
   const { data, error } = await supabase
     .from("publications")
-    .select("*, user:user_id(id, nickname, avatar_emoji, bio, level, xp)")
+    .select("*, user:user_id(nickname, avatar_emoji)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as unknown as Publication[];
+  return (data ?? []).map((row: any) => publicationFromDb(row));
 }
 
 export async function getMyFriends(userId: string): Promise<Friendship[]> {
@@ -946,7 +1147,6 @@ export async function getMyFriends(userId: string): Promise<Friendship[]> {
 }
 
 export async function removeFriend(userId: string, friendId: string): Promise<void> {
-  // Delete both directions
   await supabase.from("friends").delete().eq("user_id", userId).eq("friend_id", friendId);
   await supabase.from("friends").delete().eq("user_id", friendId).eq("friend_id", userId);
 }

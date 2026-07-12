@@ -215,7 +215,7 @@ export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps
             AI generation didn't complete. Try again or use the manual path below.
           </p>
           <button
-            onClick={() => useGoalStore.getState().generateCourse(goal.id)}
+            onClick={() => useGoalStore.getState().processGoalWithAI(goal.id)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-all duration-150 active:scale-95 cursor-pointer"
           >
             Retry AI generation
@@ -223,7 +223,7 @@ export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps
         </div>
       ) : !goal.course || goal.course.length === 0 ? (
         <button
-          onClick={() => useGoalStore.getState().generateCourse(goal.id)}
+          onClick={() => useGoalStore.getState().processGoalWithAI(goal.id)}
           className="mt-4 w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg text-xs font-medium border border-dashed border-primary/20 text-primary/60 hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 active:scale-[0.97] cursor-pointer"
         >
           <BookOpen size={14} />

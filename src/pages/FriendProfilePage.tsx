@@ -17,7 +17,8 @@ import { useAuthStore } from "../store/useAuthStore";
 import { useMessageStore } from "../store/useMessageStore";
 import { useFriendStore } from "../store/useFriendStore";
 import * as api from "../api/client";
-import type { UserProfile, Publication } from "../api/types";
+import type { UserProfile } from "../types/supabase";
+import type { Publication } from "../types/publication";
 
 export default function FriendProfilePage() {
   const { id } = useParams<{ id: string }>();
@@ -294,7 +295,7 @@ export default function FriendProfilePage() {
                 <div className="flex items-center gap-3 text-xs text-muted">
                   <span className="flex items-center gap-1">
                     <Heart size={12} />
-                    {pub.likes}
+                    {pub.likes_count}
                   </span>
                   <span>{new Date(pub.created_at).toLocaleDateString()}</span>
                   <span className="px-1.5 py-0.5 rounded-full bg-bg/50 text-[10px] capitalize">
