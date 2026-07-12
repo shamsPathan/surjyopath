@@ -6,6 +6,7 @@ import { useGoalStore } from "../store/useGoalStore";
 import { usePublicationStore } from "../store/usePublicationStore";
 import { useLibraryStore } from "../store/useLibraryStore";
 import { useFriendStore } from "../store/useFriendStore";
+import { useThemeStore } from "../store/useThemeStore";
 import {
   PenLine,
   FolderOpen,
@@ -109,7 +110,7 @@ const celestialBodies: CelestialBody[] = [
 
 /* ─── Stars background (static + twinkling) ─── */
 
-function StarField() {
+function StarField({ theme }: { theme: string }) {
   const stars = useMemo(() => {
     const arr: { x: number; y: number; size: number; delay: number; duration: number }[] = [];
     for (let i = 0; i < 200; i++) {
@@ -124,17 +125,22 @@ function StarField() {
     return arr;
   }, []);
 
+  const isLight = theme === "light";
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       {stars.map((s, i) => (
         <div
           key={i}
-          className="absolute rounded-full bg-white/40"
+          className="absolute rounded-full"
           style={{
             left: `${s.x}%`,
             top: `${s.y}%`,
             width: `${s.size}px`,
             height: `${s.size}px`,
+            background: isLight
+              ? `radial-gradient(circle, oklch(0.85 0.08 70 / 0.6), transparent 70%)`
+              : `rgba(255,255,255,0.4)`,
             animation: `twinkle ${s.duration}s ease-in-out ${s.delay}s infinite`,
           }}
         />
@@ -145,7 +151,40 @@ function StarField() {
 
 /* ─── Nebula Clouds ─── */
 
-function NebulaClouds() {
+function NebulaClouds({ theme }: { theme: string }) {
+  const isLight = theme === "light";
+
+  if (isLight) {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        <div
+          className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full opacity-[0.12]"
+          style={{
+            background:
+              "radial-gradient(ellipse at 30% 50%, oklch(0.85 0.08 70 / 0.5), transparent 70%)",
+            animation: "drift1 20s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute -bottom-[10%] -right-[10%] w-[55%] h-[55%] rounded-full opacity-[0.10]"
+          style={{
+            background:
+              "radial-gradient(ellipse at 70% 50%, oklch(0.8 0.08 280 / 0.35), transparent 70%)",
+            animation: "drift2 25s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute top-[40%] left-[30%] w-[50%] h-[40%] rounded-full opacity-[0.08]"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 50%, oklch(0.88 0.06 50 / 0.4), transparent 70%)",
+            animation: "drift3 30s ease-in-out infinite",
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       {/* Cloud 1 — drifting left-right */}
@@ -181,52 +220,82 @@ function NebulaClouds() {
 
 /* ─── Central Sun ─── */
 
-function CentralSun() {
+function CentralSun({ theme }: { theme: string }) {
+  const isLight = theme === "light";
+
+  const coreColor1 = isLight ? "oklch(0.72 0.14 50 / 0.4)" : "oklch(0.62 0.13 50 / 0.6)";
+  const coreColor2 = isLight ? "oklch(0.72 0.14 50 / 0.05)" : "oklch(0.62 0.13 50 / 0.1)";
+  const midColor1 = isLight ? "oklch(0.82 0.12 50 / 0.7)" : "oklch(0.7 0.13 50 / 0.8)";
+  const midColor2 = isLight ? "oklch(0.72 0.14 50 / 0.3)" : "oklch(0.55 0.13 50 / 0.4)";
+  const innerColor1 = isLight ? "oklch(0.92 0.08 50 / 1)" : "oklch(0.85 0.1 50 / 0.9)";
+  const innerColor2 = isLight ? "oklch(0.82 0.12 50 / 0.7)" : "oklch(0.62 0.13 50 / 0.6)";
+  const sunColor = isLight ? "oklch(0.65 0.14 50)" : "oklch(0.62 0.13 50)";
+  const corona = isLight
+    ? "oklch(0.72 0.14 50 / 0.35)"
+    : "oklch(0.62 0.13 50 / 0.3)";
+  const glowColor = isLight ? "oklch(0.72 0.14 50 / 0.15)" : "oklch(0.62 0.13 50 / 0.3)";
+
   return (
     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+      {/* Corona ring — extra prominence in light mode */}
+      <div
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          width: isLight ? 280 : 200,
+          height: isLight ? 280 : 200,
+          background: `radial-gradient(circle, ${corona}, transparent 70%)`,
+          animation: "pulseGlow 5s ease-in-out infinite",
+        }}
+      />
       {/* Core */}
-      <div className="relative flex items-center justify-center" style={{ width: 120, height: 120 }}>
+      <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background:
-              "radial-gradient(circle, oklch(0.62 0.13 50 / 0.6), oklch(0.62 0.13 50 / 0.1) 60%, transparent 80%)",
+            background: `radial-gradient(circle, ${coreColor1}, ${coreColor2} 60%, transparent 80%)`,
             animation: "pulseGlow 4s ease-in-out infinite",
           }}
         />
         <div
           className="absolute rounded-full"
           style={{
-            width: 80,
-            height: 80,
-            background:
-              "radial-gradient(circle, oklch(0.7 0.13 50 / 0.8), oklch(0.55 0.13 50 / 0.4) 50%, transparent 70%)",
+            width: 120,
+            height: 120,
+            background: `radial-gradient(circle, ${midColor1}, ${midColor2} 50%, transparent 70%)`,
             animation: "pulseGlow 4s ease-in-out 1s infinite",
           }}
         />
         <div
           className="absolute rounded-full"
           style={{
-            width: 40,
-            height: 40,
-            background: "radial-gradient(circle, oklch(0.85 0.1 50 / 0.9), oklch(0.62 0.13 50 / 0.6))",
-            boxShadow: "0 0 60px oklch(0.62 0.13 50 / 0.3)",
+            width: 60,
+            height: 60,
+            background: `radial-gradient(circle, ${innerColor1}, ${innerColor2})`,
+            boxShadow: `0 0 80px ${glowColor}`,
           }}
         />
         {/* Sun icon in the center */}
         <Sun
-          size={22}
-          className="relative text-white/90 z-10"
-          style={{ filter: "drop-shadow(0 0 12px oklch(0.62 0.13 50 / 0.5))" }}
+          size={28}
+          className={`relative z-10 ${isLight ? "text-amber-950/80" : "text-white/90"}`}
+          style={{ filter: `drop-shadow(0 0 16px ${glowColor})` }}
         />
       </div>
 
       {/* Label */}
-      <div className="text-center mt-4">
-        <h2 className="font-heading font-bold text-xl text-white/80 tracking-wide">
+      <div className="text-center mt-4 sm:mt-5">
+        <h2
+          className={`font-heading font-bold text-xl tracking-wide ${
+            isLight ? "text-amber-950/80" : "text-white/80"
+          }`}
+        >
           SurjyoPath
         </h2>
-        <p className="text-[11px] text-white/40 mt-0.5 tracking-widest uppercase">
+        <p
+          className={`text-[11px] mt-0.5 tracking-widest uppercase ${
+            isLight ? "text-amber-900/50" : "text-white/40"
+          }`}
+        >
           The Sun's Way
         </p>
       </div>
@@ -236,11 +305,17 @@ function CentralSun() {
 
 /* ─── Orbit Ring ─── */
 
-function OrbitRing({ radius }: { radius: number }) {
+function OrbitRing({ radius, theme }: { radius: number; theme: string }) {
+  const isLight = theme === "light";
   return (
     <div
-      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/[0.06] pointer-events-none"
-      style={{ width: `${radius * 2}%`, height: `${radius * 2}%`, paddingTop: `${radius * 2}%` }}
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border pointer-events-none"
+      style={{
+        width: `${radius * 2}%`,
+        height: `${radius * 2}%`,
+        paddingTop: `${radius * 2}%`,
+        borderColor: isLight ? "oklch(0.5 0.06 70 / 0.15)" : "rgba(255,255,255,0.06)",
+      }}
     />
   );
 }
@@ -254,6 +329,7 @@ function Planet({
   onLeave,
   isHovered,
   stats,
+  theme,
 }: {
   body: CelestialBody;
   index: number;
@@ -261,6 +337,7 @@ function Planet({
   onLeave: () => void;
   isHovered: boolean;
   stats: { count: number; label: string }[];
+  theme: string;
 }) {
   const navigate = useNavigate();
 
@@ -278,8 +355,8 @@ function Planet({
         onMouseLeave={onLeave}
         className="group relative flex items-center justify-center rounded-full transition-all duration-300 cursor-pointer"
         style={{
-          width: isHovered ? 80 : 56,
-          height: isHovered ? 80 : 56,
+          width: isHovered ? 110 : 80,
+          height: isHovered ? 110 : 80,
           transform: `translate(calc(${body.orbitRadius}vw - 50%), calc(${body.orbitRadius}vw - 50%))`,
           transition: "width 0.3s ease, height 0.3s ease",
         }}
@@ -306,7 +383,7 @@ function Planet({
             boxShadow: isHovered ? `0 0 30px ${body.color} / 0.2` : "none",
           }}
         >
-          <span className="text-lg transition-transform duration-300 group-hover:scale-110">
+          <span className="text-2xl transition-transform duration-300 group-hover:scale-110">
             {body.emoji}
           </span>
         </div>
@@ -318,7 +395,11 @@ function Planet({
           <p
             className="font-heading text-xs font-semibold text-center transition-all duration-300"
             style={{
-              color: isHovered ? `${body.color}` : "oklch(0.7 0.02 270)",
+              color: isHovered
+                  ? `${body.color}`
+                  : theme === "light"
+                    ? "oklch(0.35 0.03 270)"
+                    : "oklch(0.7 0.02 270)",
               opacity: isHovered ? 1 : 0.5,
               transform: isHovered ? "scale(1.1)" : "scale(1)",
             }}
@@ -369,6 +450,7 @@ export default function GalaxyPage() {
   const [hoveredBody, setHoveredBody] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  const theme = useThemeStore((s) => s.theme);
   const { profile, isAuthenticated } = useAuthStore();
   const thoughts = useJournalStore((s) => s.thoughts);
   const goals = useGoalStore((s) => s.goals);
@@ -403,7 +485,15 @@ export default function GalaxyPage() {
     <div
       className="relative w-full h-[calc(100vh-4rem)] overflow-hidden"
       style={{
-        background: `
+        background:
+          theme === "light"
+            ? `
+          radial-gradient(ellipse 80% 60% at 50% 50%, oklch(0.82 0.08 50 / 0.12), transparent),
+          radial-gradient(ellipse 60% 80% at 30% 60%, oklch(0.75 0.08 280 / 0.08), transparent),
+          radial-gradient(ellipse 50% 50% at 70% 40%, oklch(0.80 0.06 70 / 0.06), transparent),
+          oklch(0.96 0.01 80)
+        `
+            : `
           radial-gradient(ellipse 80% 60% at 50% 50%, oklch(0.62 0.13 50 / 0.04), transparent),
           radial-gradient(ellipse 60% 80% at 30% 60%, oklch(0.55 0.15 280 / 0.03), transparent),
           radial-gradient(ellipse 50% 50% at 70% 40%, oklch(0.55 0.10 70 / 0.02), transparent),
@@ -412,13 +502,16 @@ export default function GalaxyPage() {
       }}
     >
       {/* Star field */}
-      <StarField />
-      <NebulaClouds />
+      <StarField theme={theme} />
+      <NebulaClouds theme={theme} />
 
       {/* Entrance fade */ }
       <div
         className="absolute inset-0 z-20 pointer-events-none transition-opacity duration-1000"
-        style={{ opacity: mounted ? 0 : 1, background: "oklch(0.13 0.025 260)" }}
+        style={{
+          opacity: mounted ? 0 : 1,
+          background: theme === "light" ? "oklch(0.96 0.01 80)" : "oklch(0.13 0.025 260)",
+        }}
       />
 
       {/* Content */}
@@ -428,11 +521,11 @@ export default function GalaxyPage() {
         }`}
       >
         {/* Central sun */}
-        <CentralSun />
+        <CentralSun theme={theme} />
 
         {/* Orbit rings */}
         {[14, 18, 20, 26, 26, 34].map((r, i) => (
-          <OrbitRing key={i} radius={r} />
+          <OrbitRing key={i} radius={r} theme={theme} />
         ))}
 
         {/* Planets */}
@@ -445,6 +538,7 @@ export default function GalaxyPage() {
             onLeave={() => setHoveredBody(null)}
             isHovered={hoveredBody === body.id}
             stats={getStats(body.id)}
+            theme={theme}
           />
         ))}
 
@@ -459,7 +553,14 @@ export default function GalaxyPage() {
             </button>
           )}
           {isAuthenticated && (
-            <p className="text-[11px] text-white/20 tracking-wider">
+            <p
+              className="text-[11px] tracking-wider"
+              style={{
+                color: theme === "light"
+                  ? "oklch(0.4 0.02 70 / 0.5)"
+                  : "rgba(255,255,255,0.2)",
+              }}
+            >
               Hover a planet · Click to explore
             </p>
           )}
