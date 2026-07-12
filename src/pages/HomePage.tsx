@@ -29,7 +29,7 @@ export default function HomePage() {
 
   const greeting = profile?.nickname
     ? `Welcome back, ${profile.nickname}`
-    : "Welcome to Suryopath";
+    : "Welcome to Vital Vault";
 
   return (
     <div className="max-w-4xl mx-auto">

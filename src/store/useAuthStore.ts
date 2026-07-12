@@ -1,10 +1,8 @@
 import { create } from "zustand";
-import type { User, AuthEvent as SupabaseAuthEvent } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import * as api from "../api/client";
 import type { UserProfile } from "../api/types";
-
-type AuthEvent = SupabaseAuthEvent;
 
 interface AuthState {
   user: User | null;
@@ -12,15 +10,11 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
-  authEvent: AuthEvent | null;
 
   initialize: () => Promise<void>;
   signUp: (email: string, password: string, nickname: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithOAuth: (provider: 'google' | 'facebook') => Promise<void>;
   signOut: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   clearError: () => void;
 }
@@ -31,7 +25,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   isAuthenticated: false,
   error: null,
-  authEvent: null,
 
   initialize: async () => {
     try {
@@ -51,11 +44,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       // Listen for auth changes
-      supabase.auth.onAuthStateChange(async (event, session) => {
+      supabase.auth.onAuthStateChange(async (_event, session) => {
         const currentUser = session?.user ?? null;
         let currentProfile: UserProfile | null = null;
 
-        if (currentUser && event !== "PASSWORD_RECOVERY") {
+        if (currentUser) {
           currentProfile = await api.getUserProfile(currentUser.id);
         }
 
@@ -63,7 +56,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           user: currentUser,
           profile: currentProfile,
           isAuthenticated: !!currentUser,
-          authEvent: event,
         });
       });
     } catch (err) {
@@ -95,28 +87,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         isLoading: false,
       });
     } catch (err: any) {
-      const rawMessage = err.message || "Sign in failed";
-      // Transform the terse "Email not confirmed" into a friendlier message
-      const friendlyMessage = rawMessage.toLowerCase().includes("email not confirmed")
-        ? "Check your email and confirm your account"
-        : rawMessage;
-      set({ isLoading: false, error: friendlyMessage });
+      set({ isLoading: false, error: err.message || "Sign in failed" });
       throw err;
-    }
-  },
-
-  signInWithOAuth: async (provider: 'google' | 'facebook') => {
-    set({ isLoading: true, error: null });
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: `${window.location.origin}`,
-        },
-      });
-      if (error) throw error;
-    } catch (err: any) {
-      set({ isLoading: false, error: err.message || "OAuth sign-in failed" });
     }
   },
 
@@ -132,28 +104,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
     } catch (err: any) {
       set({ isLoading: false, error: err.message || "Sign out failed" });
-    }
-  },
-
-  resetPassword: async (email: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      await api.resetPasswordForEmail(email);
-      set({ isLoading: false, error: "Reset link sent! Check your email." });
-    } catch (err: any) {
-      set({ isLoading: false, error: err.message || "Failed to send reset email" });
-      throw err;
-    }
-  },
-
-  updatePassword: async (newPassword: string) => {
-    set({ isLoading: true, error: null });
-    try {
-      await api.updatePassword(newPassword);
-      set({ isLoading: false, authEvent: null });
-    } catch (err: any) {
-      set({ isLoading: false, error: err.message || "Failed to update password" });
-      throw err;
     }
   },
 
