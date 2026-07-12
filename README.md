@@ -1,4 +1,4 @@
-<div align="center">
+i<div align="center">
   <img src="public/surjyopath.svg" alt="SurjyoPath Logo" width="120" height="120" />
   
   # ☀️ SurjyoPath — *The Sun's Way*
@@ -18,16 +18,18 @@
   
   <br />
   
-  **[✨ Live Demo](https://surjyopath.com)** &nbsp;·&nbsp; **[📖 Documentation](docs/)** &nbsp;·&nbsp; **[🎬 Presentation](https://surjyopath.com/presentation)**
+  **[✨ Live Demo](https://surjyopath.com)** &nbsp;·&nbsp; **[📖 Documentation](docs/)** &nbsp;·&nbsp; **[🎬 Presentation](https://surjyopath.com/presentation.pdf)**
   
+   
   <br />
   
-  <img src="https://via.placeholder.com/800x450/0a0a1a/F59E0B?text=SurjyoPath+Galaxy+Interface" alt="SurjyoPath Galaxy Interface" width="800" style="border-radius: 16px; box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);" />
-  
-  <br />
+  <img src="https://surjyopath.com/shot.png" alt="SurjyoPath Galaxy Interface" width="800" style="border-radius: 16px; box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);" />
+
+<br />
   <br />
   
   > *"We are not productivity machines. We are solar systems — vast, interconnected, and always in motion."*
+  
   
   <br />
 </div>
