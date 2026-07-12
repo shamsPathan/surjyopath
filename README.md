@@ -18,7 +18,7 @@
   
   <br />
   
-  **[✨ Live Demo](https://surjyopath.nativelyai.app)** &nbsp;·&nbsp; **[📖 Documentation](docs/)** &nbsp;·&nbsp; **[🎬 Presentation](https://surjyopath.nativelyai.app/presentation)**
+  **[✨ Live Demo](https://surjyopath.com)** &nbsp;·&nbsp; **[📖 Documentation](docs/)** &nbsp;·&nbsp; **[🎬 Presentation](https://surjyopath.com/presentation)**
   
   <br />
   
@@ -267,7 +267,7 @@ src/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/surjyopath.git
+git clone https://github.com/surjyopath/surjyopath.git
 cd surjyopath
 
 # Install dependencies

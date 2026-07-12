@@ -1,0 +1,8 @@
+# SurjyoPath Documentation — GitHub Pages Configuration
+title: ☀️ SurjyoPath Docs
+description: Documentation for SurjyoPath — Your personal knowledge universe, reimagined as a living solar system.
+theme: jekyll-theme-cayman
+show_downloads: true
+google_analytics:
+github:
+  repository_url: https://github.com/surjyopath/surjyopath
