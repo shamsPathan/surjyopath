@@ -15,11 +15,12 @@ const COMPASS_OPTIONS: { value: CompassDirection; label: string; description: st
 
 export default function GoalsPage() {
   const { isAuthenticated } = useAuthStore();
-  const { goals, creating, setCreating, addGoal, deleteGoal, toggleStep, initialize } = useGoalStore();
+  const { goals, addGoal, deleteGoal, toggleStep, initialize } = useGoalStore();
   const navigate = useNavigate();
   const [guestBannerDismissed, setGuestBannerDismissed] = useState(
     () => sessionStorage.getItem("guest_banner_dismissed") === "true",
   );
+  const [creating, setCreating] = useState(false);
 
   /* Form state */
   const [title, setTitle] = useState("");

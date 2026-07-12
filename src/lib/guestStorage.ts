@@ -2,7 +2,7 @@
  * Guest Storage — localStorage-based persistence for non-authenticated users.
  *
  * Mirrors the Supabase-backed API layer but saves everything to localStorage
- * under a `guest_vault` namespace. On first use it seeds empty arrays.
+ * under a `surjyopath_guest` namespace. On first use it seeds empty arrays.
  */
 
 import type { Thought } from "../types/thought";
@@ -11,7 +11,7 @@ import type { Publication } from "../types/publication";
 
 /* ─── Storage key ─── */
 
-const STORAGE_KEY = "vital_vault_guest";
+const STORAGE_KEY = "surjyopath_guest";
 
 /* ─── Types ─── */
 

@@ -368,10 +368,8 @@ export default function ThoughtCard({
 
   const handlePublish = () => {
     // Create a publication from this thought, then mark it as published
-    const pub = publishFromThought(thought);
-    if (pub) {
-      updateThought(thought.id, { is_published: true });
-    }
+    publishFromThought(thought.id, thought.title, thought.content);
+    updateThought(thought.id, { is_published: true });
   };
 
   // Determine button state
