@@ -13,7 +13,7 @@ import { supabase } from "../lib/supabase";
 import { canKnock, recordKnock } from "../lib/rateLimiter";
 import { runMockAI as mockThoughtAnalysis } from "../lib/mockAI";
 import type { Thought, ThoughtAnalysis } from "../types/thought";
-import type { GoalCourseResponse } from "../types/supabase";
+import type { GoalCourseResponse } from "../api/types";
 
 /* ─── Types ─── */
 

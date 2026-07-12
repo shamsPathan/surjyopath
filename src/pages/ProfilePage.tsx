@@ -11,7 +11,7 @@ import { useJournalStore } from "../store/useJournalStore";
 import { useGoalStore } from "../store/useGoalStore";
 import { usePublicationStore } from "../store/usePublicationStore";
 import { useMessageStore } from "../store/useMessageStore";
-import type { ConversationSummary } from "../types/supabase";
+import type { ConversationSummary } from "../api/types";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -213,7 +213,7 @@ export default function ProfilePage() {
           <div>
             <h2 className="text-sm font-heading font-semibold text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
               <Sparkles size={14} className="text-primary" />
-              Your Activity Stats
+              Your Vault Stats
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <StatItem

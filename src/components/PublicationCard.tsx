@@ -1,8 +1,6 @@
-import { Heart, MessageCircle, Clock, Tag, Eye, Check, Link as LinkIcon, User } from "lucide-react";
-import { useState } from "react";
+import { Heart, MessageCircle, Clock, Tag, Eye } from "lucide-react";
 import type { Publication } from "../types/publication";
 import { usePublicationStore } from "../store/usePublicationStore";
-import CommentSection from "./CommentSection";
 
 /* ─── Tag colour mapping (same as ThoughtCard) ─── */
 
@@ -55,7 +53,6 @@ interface PublicationCardProps {
 export default function PublicationCard({ publication }: PublicationCardProps) {
   const selectPublication = usePublicationStore((s) => s.selectPublication);
   const toggleLike = usePublicationStore((s) => s.toggleLike);
-  const [copied, setCopied] = useState(false);
 
   const handleClick = () => {
     selectPublication(publication.id);
@@ -64,23 +61,6 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleLike(publication.id);
-  };
-
-  const handleCopyLink = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const url = `${window.location.origin}/publications/${publication.id}`;
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      const input = document.createElement("input");
-      input.value = url;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand("copy");
-      document.body.removeChild(input);
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -105,14 +85,6 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
           >
             <Heart size={16} fill={publication.liked_by_user ? "currentColor" : "none"} />
           </button>
-        </div>
-
-        {/* Author row */}
-        <div className="flex items-center gap-1.5 mb-2.5">
-          <User size={12} className="text-muted" />
-          <span className="text-xs font-medium text-foreground/80">
-            {publication.author_name || "You"}
-          </span>
         </div>
 
         {/* Excerpt */}
@@ -159,33 +131,12 @@ export default function PublicationCard({ publication }: PublicationCardProps) {
               <MessageCircle size={12} />
               {publication.comments_count}
             </span>
-            {/* Copy link */}
-            <button
-              onClick={handleCopyLink}
-              className="inline-flex items-center gap-1 text-muted hover:text-primary transition-colors duration-150 active:scale-90"
-              aria-label="Copy share link"
-            >
-              {copied ? (
-                <Check size={12} className="text-emerald-400" />
-              ) : (
-                <LinkIcon size={12} />
-              )}
-            </button>
             <span className="inline-flex items-center gap-1 text-primary/60 group-hover:text-primary transition-colors duration-150">
               <Eye size={12} />
               Read
             </span>
           </div>
         </div>
-      </div>
-
-      {/* Inline comment section — stop click propagation to avoid opening detail view */}
-      <div onClick={(e) => e.stopPropagation()} className="px-5 pb-3">
-        <CommentSection
-          publicationId={publication.id}
-          comments={publication.comments}
-          commentsCount={publication.comments_count}
-        />
       </div>
     </article>
   );

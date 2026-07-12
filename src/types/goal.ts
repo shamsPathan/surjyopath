@@ -17,13 +17,9 @@ export interface Goal {
   title: string;
   description: string;
   target_date: string;     /* ISO date string */
-  emoji: string;            /* Visual icon for the goal */
 
   /* Compass */
   direction: CompassDirection | null;
-
-  /* Link to originating thought */
-  thought_id: string | null;
 
   /* Steps — the AI-generated learning path */
   steps: GoalStep[];
@@ -33,9 +29,6 @@ export interface Goal {
 
   /* Status */
   status: "active" | "completed" | "abandoned";
-
-  /* Flags */
-  is_new: boolean;
 
   /* AI-enriched course (from Knock Engine) */
   course: GoalCourseModule[] | null;
@@ -48,10 +41,6 @@ export interface Goal {
   user_id: string;
   created_at: string;
   updated_at: string;
-
-  /* Timestamps */
-  completed_at: string | null;   /* ISO — when the goal was marked completed */
-  processed_at: string | null;   /* ISO — when AI last processed this goal */
 }
 
 /** A module in the AI-generated course structure */
@@ -124,85 +113,4 @@ export function computeAlignment(goal: Goal): number {
 export function driftDays(goal: Goal): number {
   if (!goal.last_touched_step_at) return Infinity;
   return (Date.now() - new Date(goal.last_touched_step_at).getTime()) / 86400000;
-}
-
-/* ─── Supabase DB row → domain type converter ─── */
-
-/**
- * Build a Goal from the Supabase goals row + parsed JSON fields.
- * The DB stores goals.status as "pending" | "ready", which we
- * map to domain equivalents ("active" | "completed").
- */
-export function goalFromDb(db: {
-  id: string;
-  user_id: string;
-  thought_id: string | null;
-  title: string;
-  description: string;
-  emoji: string;
-  direction: string | null;
-  status: string;
-  progress: number;
-  is_new: boolean;
-  completed_at: string | null;
-  processed_at: string | null;
-  created_at: string;
-  updated_at: string;
-  last_touched_step_at: string | null;
-}): Goal {
-  /* Map DB status → domain status */
-  const dbStatus = db.status;
-  const status: Goal["status"] =
-    dbStatus === "completed" ? "completed"
-    : dbStatus === "abandoned" ? "abandoned"
-    : "active";
-
-  /* Parse JSON columns */
-  let course: GoalCourseModule[] | null = null;
-  let steps: GoalStep[] = [];
-
-  /* The DB stores `course` as a blob, try parsing it */
-  try {
-    if (typeof (db as any).course === "string") {
-      course = JSON.parse((db as any).course);
-    } else if ((db as any).course) {
-      course = (db as any).course as GoalCourseModule[];
-    }
-  } catch { /* ignore parse errors */ }
-
-  /* The DB stores `steps` as a blob */
-  try {
-    if (typeof (db as any).steps === "string") {
-      steps = JSON.parse((db as any).steps);
-    } else if ((db as any).steps) {
-      steps = (db as any).steps as GoalStep[];
-    }
-  } catch { /* ignore parse errors */ }
-
-  const direction: CompassDirection | null =
-    db.direction && ["growth", "creation", "grounding", "release"].includes(db.direction)
-      ? (db.direction as CompassDirection)
-      : null;
-
-  return {
-    id: db.id,
-    title: db.title,
-    description: db.description,
-    target_date: (db as any).target_date || new Date(db.created_at).toISOString().split("T")[0],
-    emoji: db.emoji || "🎯",
-    direction,
-    thought_id: db.thought_id,
-    steps,
-    progress: db.progress ?? 0,
-    status,
-    is_new: db.is_new ?? false,
-    course,
-    aiCourseStatus: course ? "ready" : "idle",
-    last_touched_step_at: db.last_touched_step_at,
-    user_id: db.user_id,
-    created_at: db.created_at,
-    updated_at: db.updated_at,
-    completed_at: db.completed_at,
-    processed_at: db.processed_at,
-  };
 }

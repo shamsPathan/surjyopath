@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { User, AuthEvent as SupabaseAuthEvent } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import * as api from "../api/client";
-import type { UserProfile } from "../types/supabase";
+import type { UserProfile } from "../api/types";
 
 type AuthEvent = SupabaseAuthEvent;
 

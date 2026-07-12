@@ -19,19 +19,18 @@ export default function GoalCourseSection({ course, goalId, onViewDetail }: Goal
 
   return (
     <div className="mt-4 rounded-xl border border-primary/10 bg-primary/[0.03] overflow-hidden transition-all duration-200">
-      {/* Header bar */}
-      <div className="w-full flex items-center justify-between px-4 py-3 gap-2">
-        {/* Clickable expand toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-2.5 text-left transition-all duration-150 hover:bg-primary/[0.03] rounded-lg cursor-pointer grow min-w-0"
-          aria-expanded={expanded}
-          aria-controls="course-content"
-        >
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent/60 flex items-center justify-center shrink-0">
+      {/* Header bar — clickable to expand */}
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left transition-all duration-150 hover:bg-primary/[0.03] cursor-pointer"
+        aria-expanded={expanded}
+        aria-controls="course-content"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent/60 flex items-center justify-center">
             <Brain size={14} className="text-white" />
           </div>
-          <div className="min-w-0">
+          <div>
             <span className="text-sm font-semibold text-foreground">AI Learning Path</span>
             <div className="flex items-center gap-2.5 mt-0.5">
               <span className="text-[11px] text-muted">
@@ -47,9 +46,8 @@ export default function GoalCourseSection({ course, goalId, onViewDetail }: Goal
               )}
             </div>
           </div>
-        </button>
-
-        <div className="flex items-center gap-2 shrink-0">
+        </div>
+        <div className="flex items-center gap-2">
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -59,19 +57,13 @@ export default function GoalCourseSection({ course, goalId, onViewDetail }: Goal
           >
             View full course
           </button>
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="p-0.5 rounded-md hover:bg-surface-active transition-all duration-150 cursor-pointer"
-            aria-label={expanded ? "Collapse" : "Expand"}
-          >
-            {expanded ? (
-              <ChevronDown size={16} className="text-muted" />
-            ) : (
-              <ChevronRight size={16} className="text-muted" />
-            )}
-          </button>
+          {expanded ? (
+            <ChevronDown size={16} className="text-muted shrink-0" />
+          ) : (
+            <ChevronRight size={16} className="text-muted shrink-0" />
+          )}
         </div>
-      </div>
+      </button>
 
       {/* Expanded content */}
       {expanded && (

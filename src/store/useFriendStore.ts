@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import { useAuthStore } from "./useAuthStore";
 import type {
-  FriendRequestWithUser as FriendRequest,
-  FriendshipWithUser as Friendship,
+  FriendRequest,
+  Friendship,
   SearchUserResult,
-} from "../types/supabase";
+} from "../api/types";
 import * as api from "../api/client";
 
 interface FriendState {

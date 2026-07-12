@@ -28,7 +28,6 @@ export interface Publication {
   likes_count: number;
   comments_count: number;
   liked_by_user: boolean;
-  comments: Comment[];
 
   /* Status */
   status: "draft" | "published";
@@ -37,17 +36,6 @@ export interface Publication {
   created_at: string;
   updated_at: string;
   published_at: string | null;
-}
-
-/* ─── Comment on a publication ─── */
-
-export interface Comment {
-  id: string;
-  publication_id: string;
-  user_id: string;
-  author_name: string;
-  content: string;
-  created_at: string;
 }
 
 /* ─── Input for publishing a thought ─── */
