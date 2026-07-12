@@ -41,58 +41,10 @@ const celestialBodies: CelestialBody[] = [
     icon: PenLine,
     color: "oklch(0.6 0.15 250)", // tag-blue
     emoji: "✍️",
-    orbitRadius: 18,
-    orbitDuration: 28,
+    orbitRadius: 9,
+    orbitDuration: 18,
     initialAngle: 0,
     description: "Raw thoughts & AI analysis",
-  },
-  {
-    id: "goals",
-    label: "Goals",
-    path: "/goals",
-    icon: FolderOpen,
-    color: "oklch(0.6 0.15 150)", // tag-green
-    emoji: "🎯",
-    orbitRadius: 26,
-    orbitDuration: 36,
-    initialAngle: Math.PI / 3,
-    description: "Learning paths & courses",
-  },
-  {
-    id: "library",
-    label: "Library",
-    path: "/library",
-    icon: BookOpen,
-    color: "oklch(0.6 0.12 190)", // tag-teal
-    emoji: "📚",
-    orbitRadius: 34,
-    orbitDuration: 44,
-    initialAngle: (2 * Math.PI) / 3,
-    description: "Curated readings",
-  },
-  {
-    id: "publications",
-    label: "Publications",
-    path: "/publications",
-    icon: Newspaper,
-    color: "oklch(0.65 0.15 70)", // tag-amber
-    emoji: "📰",
-    orbitRadius: 26,
-    orbitDuration: 40,
-    initialAngle: Math.PI,
-    description: "Polished articles",
-  },
-  {
-    id: "friends",
-    label: "Friends",
-    path: "/friends",
-    icon: Users,
-    color: "oklch(0.6 0.15 360)", // tag-rose
-    emoji: "👥",
-    orbitRadius: 20,
-    orbitDuration: 32,
-    initialAngle: (4 * Math.PI) / 3,
-    description: "Connect with learners",
   },
   {
     id: "profile",
@@ -101,10 +53,58 @@ const celestialBodies: CelestialBody[] = [
     icon: User,
     color: "oklch(0.6 0.15 290)", // tag-violet
     emoji: "🌟",
-    orbitRadius: 14,
-    orbitDuration: 24,
-    initialAngle: (5 * Math.PI) / 3,
+    orbitRadius: 12,
+    orbitDuration: 21,
+    initialAngle: Math.PI / 3,
     description: "Your growth & stats",
+  },
+  {
+    id: "friends",
+    label: "Friends",
+    path: "/friends",
+    icon: Users,
+    color: "oklch(0.6 0.15 360)", // tag-rose
+    emoji: "👥",
+    orbitRadius: 15,
+    orbitDuration: 25,
+    initialAngle: (2 * Math.PI) / 3,
+    description: "Connect with learners",
+  },
+  {
+    id: "goals",
+    label: "Goals",
+    path: "/goals",
+    icon: FolderOpen,
+    color: "oklch(0.6 0.15 150)", // tag-green
+    emoji: "🎯",
+    orbitRadius: 18,
+    orbitDuration: 29,
+    initialAngle: Math.PI,
+    description: "Learning paths & courses",
+  },
+  {
+    id: "publications",
+    label: "Publications",
+    path: "/publications",
+    icon: Newspaper,
+    color: "oklch(0.65 0.15 70)", // tag-amber
+    emoji: "📰",
+    orbitRadius: 21,
+    orbitDuration: 33,
+    initialAngle: (4 * Math.PI) / 3,
+    description: "Polished articles",
+  },
+  {
+    id: "library",
+    label: "Library",
+    path: "/library",
+    icon: BookOpen,
+    color: "oklch(0.6 0.12 190)", // tag-teal
+    emoji: "📚",
+    orbitRadius: 23,
+    orbitDuration: 37,
+    initialAngle: (5 * Math.PI) / 3,
+    description: "Curated readings",
   },
 ];
 
@@ -220,7 +220,7 @@ function NebulaClouds({ theme }: { theme: string }) {
 
 /* ─── Central Sun ─── */
 
-function CentralSun({ theme }: { theme: string }) {
+function CentralSun({ theme, entered }: { theme: string; entered: boolean }) {
   const isLight = theme === "light";
 
   const coreColor1 = isLight ? "oklch(0.72 0.14 50 / 0.4)" : "oklch(0.62 0.13 50 / 0.6)";
@@ -236,63 +236,84 @@ function CentralSun({ theme }: { theme: string }) {
   const glowColor = isLight ? "oklch(0.72 0.14 50 / 0.15)" : "oklch(0.62 0.13 50 / 0.3)";
 
   return (
-    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-      {/* Corona ring — extra prominence in light mode */}
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{
-          width: isLight ? 280 : 200,
-          height: isLight ? 280 : 200,
-          background: `radial-gradient(circle, ${corona}, transparent 70%)`,
-          animation: "pulseGlow 5s ease-in-out infinite",
-        }}
-      />
-      {/* Core */}
-      <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
+    <div
+      className="pointer-events-none relative"
+      style={{
+        opacity: entered ? 1 : 0,
+        transform: entered ? "scale(1)" : "scale(0.92)",
+        transition: "opacity 0.8s ease, transform 1s cubic-bezier(0.22, 1.2, 0.36, 1)",
+      }}
+    >
+      {/* Core + corona all share the same center — 220×220 ensures true center */}
+      <div className="relative flex items-center justify-center" style={{ width: 220, height: 220 }}>
+        {/* Outer corona bloom */}
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+          style={{
+            width: isLight ? 460 : 380,
+            height: isLight ? 460 : 380,
+            background: `radial-gradient(circle, ${glowColor}, transparent 70%)`,
+            animation: "pulseGlow 6s ease-in-out 0.5s infinite",
+            opacity: isLight ? 0.6 : 0.4,
+          }}
+        />
+        {/* Inner corona ring */}
+        <div
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+          style={{
+            width: isLight ? 340 : 280,
+            height: isLight ? 340 : 280,
+            background: `radial-gradient(circle, ${corona}, transparent 70%)`,
+            animation: "pulseGlow 5s ease-in-out infinite",
+          }}
+        />
+        {/* Core glow layer */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
             background: `radial-gradient(circle, ${coreColor1}, ${coreColor2} 60%, transparent 80%)`,
             animation: "pulseGlow 4s ease-in-out infinite",
+            filter: "blur(2px)",
           }}
         />
         <div
           className="absolute rounded-full"
           style={{
-            width: 120,
-            height: 120,
+            width: 140,
+            height: 140,
             background: `radial-gradient(circle, ${midColor1}, ${midColor2} 50%, transparent 70%)`,
             animation: "pulseGlow 4s ease-in-out 1s infinite",
+            filter: "blur(1px)",
           }}
         />
         <div
           className="absolute rounded-full"
           style={{
-            width: 60,
-            height: 60,
+            width: 80,
+            height: 80,
             background: `radial-gradient(circle, ${innerColor1}, ${innerColor2})`,
-            boxShadow: `0 0 80px ${glowColor}`,
+            boxShadow: `0 0 120px ${glowColor}, 0 0 60px ${sunColor}`,
           }}
         />
         {/* Sun icon in the center */}
         <Sun
-          size={28}
+          size={36}
           className={`relative z-10 ${isLight ? "text-amber-950/80" : "text-white/90"}`}
-          style={{ filter: `drop-shadow(0 0 16px ${glowColor})` }}
+          style={{ filter: `drop-shadow(0 0 24px ${glowColor})` }}
         />
       </div>
 
-      {/* Label */}
-      <div className="text-center mt-4 sm:mt-5">
+      {/* Label — absolutely positioned below the core so flex centers only the 220×220 core */}
+      <div className="absolute left-1/2 -translate-x-1/2 text-center" style={{ top: "100%", marginTop: "1.25rem" }}>
         <h2
-          className={`font-heading font-bold text-xl tracking-wide ${
+          className={`font-heading font-bold text-2xl tracking-wide ${
             isLight ? "text-amber-950/80" : "text-white/80"
           }`}
         >
           SurjyoPath
         </h2>
         <p
-          className={`text-[11px] mt-0.5 tracking-widest uppercase ${
+          className={`text-xs mt-1 tracking-widest uppercase ${
             isLight ? "text-amber-900/50" : "text-white/40"
           }`}
         >
@@ -330,6 +351,7 @@ function Planet({
   isHovered,
   stats,
   theme,
+  burstDelay,
 }: {
   body: CelestialBody;
   index: number;
@@ -338,14 +360,23 @@ function Planet({
   isHovered: boolean;
   stats: { count: number; label: string }[];
   theme: string;
+  burstDelay: number;
 }) {
   const navigate = useNavigate();
+  const [burst, setBurst] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setBurst(true), burstDelay);
+    return () => clearTimeout(t);
+  }, [burstDelay]);
 
   return (
     <div
       className="absolute left-1/2 top-1/2 pointer-events-auto"
       style={{
-        animation: `orbit${index} ${body.orbitDuration}s linear infinite`,
+        opacity: burst ? 1 : 0,
+        transition: "opacity 0.4s ease",
+        animation: burst ? `orbit${index} ${body.orbitDuration}s linear infinite` : "none",
         transformOrigin: "0 0",
       }}
     >
@@ -353,12 +384,14 @@ function Planet({
         onClick={() => navigate(body.path)}
         onMouseEnter={() => onHover(body.id)}
         onMouseLeave={onLeave}
-        className="group relative flex items-center justify-center rounded-full transition-all duration-300 cursor-pointer"
+        className="group relative flex items-center justify-center rounded-full cursor-pointer"
         style={{
-          width: isHovered ? 110 : 80,
-          height: isHovered ? 110 : 80,
-          transform: `translate(calc(${body.orbitRadius}vw - 50%), calc(${body.orbitRadius}vw - 50%))`,
-          transition: "width 0.3s ease, height 0.3s ease",
+          width: isHovered ? 150 : 110,
+          height: isHovered ? 150 : 110,
+          transform: !burst
+            ? `translate(-50%, -50%) scale(0.5)`
+            : `translate(calc(${body.orbitRadius}vw - 50%), calc(${body.orbitRadius}vw - 50%))`,
+          transition: `transform 1.4s cubic-bezier(0.22, 1.2, 0.36, 1), width 0.3s ease, height 0.3s ease`,
         }}
         aria-label={`Navigate to ${body.label}`}
       >
@@ -369,7 +402,7 @@ function Planet({
             background: isHovered
               ? `radial-gradient(circle, ${body.color} / 0.25, ${body.color} / 0.05)`
               : "transparent",
-            transform: isHovered ? "scale(1.4)" : "scale(0.8)",
+            transform: isHovered ? "scale(2.0)" : "scale(0.8)",
             transition: "transform 0.3s ease, background 0.3s ease",
           }}
         />
@@ -383,7 +416,7 @@ function Planet({
             boxShadow: isHovered ? `0 0 30px ${body.color} / 0.2` : "none",
           }}
         >
-          <span className="text-2xl transition-transform duration-300 group-hover:scale-110">
+          <span className="text-4xl transition-transform duration-300 group-hover:scale-125">
             {body.emoji}
           </span>
         </div>
@@ -449,6 +482,7 @@ export default function GalaxyPage() {
   const navigate = useNavigate();
   const [hoveredBody, setHoveredBody] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [entered, setEntered] = useState(false);
 
   const theme = useThemeStore((s) => s.theme);
   const { profile, isAuthenticated } = useAuthStore();
@@ -460,8 +494,12 @@ export default function GalaxyPage() {
 
   useEffect(() => {
     // Trigger entrance animation
-    const t = setTimeout(() => setMounted(true), 100);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setMounted(true), 100);
+    const t2 = setTimeout(() => setEntered(true), 500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
 
   const getStats = (bodyId: string) => {
@@ -515,32 +553,38 @@ export default function GalaxyPage() {
       />
 
       {/* Content */}
-      <div
-        className={`relative z-10 w-full h-full flex flex-col items-center justify-center transition-all duration-1000 ${
-          mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-        }`}
-      >
-        {/* Central sun */}
-        <CentralSun theme={theme} />
+      <div className="relative z-10 w-full h-full flex items-center justify-center">
 
-        {/* Orbit rings */}
-        {[14, 18, 20, 26, 26, 34].map((r, i) => (
-          <OrbitRing key={i} radius={r} theme={theme} />
-        ))}
+        {/* Slowly rotating orbits + planets */}
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{
+            animation: mounted ? "galaxySpin 180s linear infinite" : "none",
+          }}
+        >
+          {/* Orbit rings */}
+          {[9, 12, 15, 18, 21, 23].map((r, i) => (
+            <OrbitRing key={i} radius={r} theme={theme} />
+          ))}
 
-        {/* Planets */}
-        {celestialBodies.map((body, i) => (
-          <Planet
-            key={body.id}
-            body={body}
-            index={i}
-            onHover={setHoveredBody}
-            onLeave={() => setHoveredBody(null)}
-            isHovered={hoveredBody === body.id}
-            stats={getStats(body.id)}
-            theme={theme}
-          />
-        ))}
+          {/* Planets */}
+          {celestialBodies.map((body, i) => (
+            <Planet
+              key={body.id}
+              body={body}
+              index={i}
+              onHover={setHoveredBody}
+              onLeave={() => setHoveredBody(null)}
+              isHovered={hoveredBody === body.id}
+              stats={getStats(body.id)}
+              theme={theme}
+              burstDelay={600 + i * 250}
+            />
+          ))}
+        </div>
+
+        {/* Central sun — static at center, does not spin */}
+        <CentralSun theme={theme} entered={entered} />
 
         {/* Bottom hint */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center">
@@ -554,14 +598,17 @@ export default function GalaxyPage() {
           )}
           {isAuthenticated && (
             <p
-              className="text-[11px] tracking-wider"
+              className="text-[11px] tracking-wider animate-pulse"
               style={{
                 color: theme === "light"
                   ? "oklch(0.4 0.02 70 / 0.5)"
                   : "rgba(255,255,255,0.2)",
+                textShadow: theme === "dark"
+                  ? "0 0 12px rgba(255,255,255,0.08)"
+                  : "0 0 12px rgba(0,0,0,0.04)",
               }}
             >
-              Hover a planet · Click to explore
+              Hover over a planet to explore more
             </p>
           )}
         </div>
@@ -594,6 +641,11 @@ export default function GalaxyPage() {
           50% { transform: translate(20px, 40px); }
         }
 
+        @keyframes galaxySpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+
         ${celestialBodies
           .map(
             (_, i) => `
@@ -611,6 +663,7 @@ export default function GalaxyPage() {
           @keyframes drift1 { 0%, 100% { transform: none; } }
           @keyframes drift2 { 0%, 100% { transform: none; } }
           @keyframes drift3 { 0%, 100% { transform: none; } }
+          @keyframes galaxySpin { 0%, 100% { transform: none; } }
           ${celestialBodies
             .map(
               (_, i) => `

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   CheckCircle2, Circle, Trash2, Target, Calendar,
   TrendingUp, Sparkles, Mountain, Sunset, BookOpen,
@@ -42,6 +43,7 @@ function timeAgo(iso: string): string {
 export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps) {
   const navigate = useNavigate();
   const isComplete = goal.progress === 100;
+  const [completedQuizzes, setCompletedQuizzes] = useState<Set<number>>(new Set());
 
   const handleViewDetail = () => {
     navigate(`/goals/${goal.id}`);
@@ -234,6 +236,10 @@ export default function GoalCard({ goal, onToggleStep, onDelete }: GoalCardProps
           course={goal.course}
           goalId={goal.id}
           onViewDetail={handleViewDetail}
+          completedQuizzes={completedQuizzes}
+          onCompleteQuiz={(moduleIndex) =>
+            setCompletedQuizzes((prev) => new Set(prev).add(moduleIndex))
+          }
         />
       ) : null}
     </div>

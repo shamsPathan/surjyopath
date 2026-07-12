@@ -12,4 +12,16 @@ export default defineConfig({
     allowedHosts: true,
     hmr: false,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Moves all node_modules into a separate vendor chunk
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+      },
+    },
+  },
 })
