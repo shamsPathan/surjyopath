@@ -13,7 +13,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const FIREWORKS_URL = "https://api.fireworks.ai/inference/v1/chat/completions";
-const MODEL = "accounts/fireworks/models/minimax-m2p7";
+const MODEL = "accounts/fireworks/models/gpt-oss-120b";
 
 /* ─── CORS headers ─── */
 const corsHeaders = {
@@ -608,26 +608,18 @@ Deno.serve(async (req: Request) => {
         };
         console.log(`Pattern cache HIT: "${normalizedTitle}" (${direction || "no direction"})`);
       } else {
-        // 🚀 CACHE MISS — generate with AI
+        // 🚀 CACHE MISS — generate with AI (Fireworks only, no mock fallback)
         console.log(`Pattern cache MISS: "${normalizedTitle}" — generating with AI...`);
-        let generated: { modules: GoalCourseModule[]; tags?: string[] };
 
-        if (effectiveKey) {
-          try {
-            const prompt = buildGoalPrompt(goalTitle, content);
-            const responseText = await callFireworks(prompt, effectiveKey);
-            generated = JSON.parse(responseText) as { modules: GoalCourseModule[]; tags?: string[] };
-          } catch (err) {
-            console.warn("Fireworks AI call failed, using mock:", err);
-            const mockResult = mockProcessGoal(goalTitle, content);
-            generated = { modules: mockResult.course.modules, tags: mockResult.tags };
-          }
-        } else {
-          const mockResult = mockProcessGoal(goalTitle, content);
-          generated = { modules: mockResult.course.modules, tags: mockResult.tags };
+        if (!effectiveKey) {
+          throw new Error("FIREWORKS_API_KEY is not configured. Cannot generate goal course without an API key.");
         }
 
-        tags = generated.tags || guessMockTags(goalTitle);
+        const prompt = buildGoalPrompt(goalTitle, content);
+        const responseText = await callFireworks(prompt, effectiveKey);
+        const generated = JSON.parse(responseText) as { modules: GoalCourseModule[]; tags?: string[] };
+
+        tags = generated.tags || [];
 
         course = {
           goalId: "new",
