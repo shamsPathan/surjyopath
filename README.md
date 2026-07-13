@@ -463,6 +463,7 @@ And where every person has the opportunity to become the brightest version of th
 
 ### Become the Light.
 
+</div>
 
 ## 🧭 Philosophy: Why a Solar System?
 
@@ -791,4 +792,3 @@ SurjyoPath was built with ❤️ for the **[NativelyAI Hackathon](https://native
 
 </div>
 
-</div>
