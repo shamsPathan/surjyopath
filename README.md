@@ -2,15 +2,40 @@
 
 <img src="public/surjyopath.svg" width="120"/>
 
-# ☀️ SurjyoPath
-### *The Sun's Way*
+# ☀️ SurjyoPath — *The Sun's Way*
+  
+  ### *Your personal knowledge universe, reimagined as a living solar system.*
+  
+  <br/>
+  
+  [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+  [![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+  [![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
+  [![Zustand](https://img.shields.io/badge/Zustand-5-433E38?logo=react&logoColor=white)](https://github.com/pmndrs/zustand)
+  [![Fireworks AI](https://img.shields.io/badge/Fireworks_AI-FF6B35?logo=fire&logoColor=white)](https://fireworks.ai)
+  [![AMD](https://img.shields.io/badge/AMD_MI300X-ED1C24?logo=amd&logoColor=white)](https://www.amd.com)
+  
+  <br />
+  
+  **[✨ Live Demo](https://surjyopath.com)** &nbsp;·&nbsp; **[📖 Documentation](docs/)** &nbsp;·&nbsp; **[🎬 Presentation](https://surjyopath.com/presentation.pdf)**
+  
+   
+  <br />
+  
+  <img src="https://surjyopath.com/shot.png" alt="SurjyoPath Galaxy Interface" width="800" style="border-radius: 16px; box-shadow: 0 0 40px rgba(245, 158, 11, 0.15);" />
 
-> **Not another productivity app.**
->
-> **A lifelong companion for human growth.**
+<br />
+  <br />
+  
+  > *"We are not productivity machines. We are solar systems — vast, interconnected, and always in motion."*
+  
+  
+  <br />
+</div>
 
-*"Every person carries a Sun within them. SurjyoPath helps it shine."*
-
+---
 ---
 
 React • TypeScript • Tailwind CSS • Vite • Supabase • PostgreSQL • Fireworks AI • MiniMax M2.7 • AMD MI300X
@@ -383,7 +408,7 @@ Because there was nobody willing to listen.
 
 SurjyoPath exists so that no meaningful thought is lost simply because it was born in the wrong place, at the wrong time, or inside the wrong environment.
 
-Whether you're a child in Bangladesh.
+Whether you're a child in Bangladesh, Pakistan.
 
 A student in Africa.
 
