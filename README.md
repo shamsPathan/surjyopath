@@ -408,7 +408,7 @@ Because there was nobody willing to listen.
 
 SurjyoPath exists so that no meaningful thought is lost simply because it was born in the wrong place, at the wrong time, or inside the wrong environment.
 
-Whether you're a child in Bangladesh, Pakistan.
+Whether you're a child in Bangladesh or Pakistan.
 
 A student in Africa.
 
