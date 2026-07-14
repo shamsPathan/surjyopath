@@ -783,6 +783,30 @@ SurjyoPath was built with ❤️ for the **[NativelyAI Hackathon](https://native
 
   <br />
 
+  ### 🌌 The Souls Behind the Cosmos
+
+  Every star needs a core to burn. Meet the creators shaping this learning universe.
+
+  <br />
+
+  **Shams Pathan**
+  <br />
+  <sub>Architect & Maker • Bangladesh</sub>
+  <br />
+  [![LinkedIn](https://shields.io)](https://linkedin.com/in/shamspathan)
+
+  <br />
+  <br />
+
+  **Tasmia Rafiq**
+  <br />
+  <sub>Visionary & Builder • Pakistan</sub>
+  <br />
+  [![LinkedIn](https://shields.io)](https://www.linkedin.com/in/tasmia-rafiq-200031371/)
+
+  <br />
+  <br />
+  <br />
   <sub>Built with ☀️, 🧡, and a little bit of stardust.</sub>
 
   <br />
